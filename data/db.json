@@ -1,0 +1,81 @@
+{
+  "cities": {
+    "mujyc2ysi4iris": {
+      "id": "mujyc2ysi4iris",
+      "name": "Boston",
+      "state": "MA",
+      "startDate": "2026-10-29",
+      "endDate": "2026-11-02",
+      "photoUrl": null,
+      "photoIndex": 0,
+      "pins": {
+        "mujyc31bostonia": {
+          "id": "mujyc31bostonia",
+          "category": "eat",
+          "title": "Bostonia",
+          "note": "Clam Chowder",
+          "url": "",
+          "when": "",
+          "status": "want",
+          "byName": "",
+          "lat": null,
+          "lng": null,
+          "placeId": null,
+          "rating": null,
+          "website": null,
+          "photoRef": null,
+          "menuUrl": null,
+          "tickets": false,
+          "tDate": "",
+          "tTime": "",
+          "tTz": "",
+          "tNote": "",
+          "remind": "1440,180",
+          "venue": "",
+          "evDate": "",
+          "evTime": "",
+          "createdAt": "2026-09-01T00:00:00.000Z"
+        }
+      },
+      "live": {
+        "see": {
+          "items": [
+            { "name": "Freedom Trail", "type": "landmark", "blurb": "A 2.5-mile red-brick trail linking 16 historic sites through downtown Boston." },
+            { "name": "Faneuil Hall Marketplace", "type": "market", "blurb": "Historic market hall with food stalls, shops, and street performers." },
+            { "name": "Boston Public Garden", "type": "park", "blurb": "America's first public botanical garden — swan boats and the Make Way for Ducklings statues." },
+            { "name": "Museum of Fine Arts", "type": "museum", "blurb": "One of the largest art museums in the US, with an encyclopedic collection." },
+            { "name": "New England Aquarium", "type": "water", "blurb": "Harborside aquarium centered on a four-story ocean tank." },
+            { "name": "Fenway Park", "type": "landmark", "blurb": "Home of the Red Sox and the oldest ballpark still in use in MLB." },
+            { "name": "Boston Common", "type": "park", "blurb": "The oldest city park in the US, anchoring the start of the Freedom Trail." },
+            { "name": "USS Constitution", "type": "landmark", "blurb": "The world's oldest commissioned warship still afloat, docked in Charlestown." },
+            { "name": "Paul Revere House", "type": "landmark", "blurb": "Boston's oldest surviving structure, home of the famous midnight rider." },
+            { "name": "Boston Tea Party Ships & Museum", "type": "experience", "blurb": "Interactive waterfront museum with a reenactment and replica ships." },
+            { "name": "Harvard Square", "type": "neighborhood", "blurb": "Bookshops, cafes, and Harvard Yard just across the river in Cambridge." },
+            { "name": "Quincy Market", "type": "market", "blurb": "Long domed market hall packed with New England food vendors." }
+          ],
+          "at": "2026-09-01T00:00:00.000Z",
+          "note": ""
+        },
+        "events": { "items": [], "at": null, "note": "" },
+        "games": { "items": [], "at": null, "note": "" },
+        "traditions": { "items": [], "at": null, "note": "" }
+      }
+    },
+    "mujyq2mcb4gyk1": {
+      "id": "mujyq2mcb4gyk1",
+      "name": "Salem",
+      "state": "MA",
+      "startDate": "2026-10-31",
+      "endDate": "2026-10-31",
+      "photoUrl": null,
+      "photoIndex": 0,
+      "pins": {},
+      "live": {
+        "see": { "items": [], "at": null, "note": "" },
+        "events": { "items": [], "at": null, "note": "" },
+        "games": { "items": [], "at": null, "note": "" },
+        "traditions": { "items": [], "at": null, "note": "" }
+      }
+    }
+  }
+}
