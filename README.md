@@ -1,125 +1,98 @@
-# Jetset Johnsons — self-hosted server
+# Jetset Johnsons — PHP version (no Node.js required)
 
-A one-file-frontend, one-dependency (Express) travel app. Everything the
-family needs — cities, pins, plans, restaurant/activity finders, events,
-sports, and a map — lives in this folder and stores its data in
-`data/db.json`.
+This is a full rebuild of the self-hosted app in plain PHP, for hosting
+accounts that don't have Node.js installed (like a standard shared-hosting
+cPanel account — the same one this was built for, after we found it had
+zero `ea-nodejs*` packages available).
+
+**No Application Manager, no "Enable Dependencies", no npm, no build step.**
+Just PHP files that Apache runs directly — the same way any ordinary PHP
+site works. If your hosting account can run WordPress, it can run this.
+
+## Requirements
+
+- PHP 7.4 or newer (PHP 8.x recommended) — check/set this in cPanel's
+  **MultiPHP Manager** for your domain.
+- The `curl` and `json` PHP extensions enabled — these are on by default on
+  virtually every cPanel PHP build. If something errors out mentioning
+  `curl_init` or `json_decode`, check **MultiPHP INI Editor** for your domain
+  and make sure `curl` and `json` are checked under Extensions.
+- `mod_rewrite` and `mod_headers` enabled on Apache — also on by default for
+  cPanel/EasyApache accounts.
 
 ## What's in here
 
 ```
-server.js                    the whole backend
-public/index.html            the whole frontend (no build step)
-public/manifest.webmanifest  PWA manifest ("Add to Home Screen")
-public/icon-192.png
-public/icon-512.png
-public/apple-touch-icon.png  gradient "J" logo, dotted flight path
-data/db.json                 seeded with Boston + Salem + the Bostonia pin
-package.json                 the one dependency: express
-.env.example                 copy to .env and fill in
+index.html                the whole frontend (identical to the Node version)
+sw.js                      service worker (offline shell caching)
+manifest.webmanifest
+icon-192.png / icon-512.png / apple-touch-icon.png
+lib.php                    all backend logic: DB, auth, Claude calls, Places calls, ICS
+api/
+  index.php                the router — dispatches /api/* requests to lib.php functions
+  .htaccess                rewrites /api/anything to index.php
+data/
+  db.json                  seeded with Boston + Salem + the Bostonia pin
+  .htaccess                blocks direct web access to this folder
+.htaccess                  blocks direct access to .env and lib.php; small housekeeping
+.env.example               copy to .env and fill in
 .gitignore
 ```
 
-## Deploying on Hostinger's cPanel (Setup Node.js App)
+## Deploying
 
-1. **Log in to cPanel → Software → Setup Node.js App → Create Application.**
-2. **Node.js version:** pick 18.x or newer.
-3. **Application mode:** Production.
-4. **Application root:** a folder name, e.g. `jetset-johnsons` (cPanel creates
-   it under your home directory).
-5. **Application URL:** pick the domain/subdomain you want this on (e.g.
-   `trip.yourdomain.com`).
-6. **Application startup file:** `server.js`
-7. Click **Create**. cPanel will show you a command like
-   `source /home/yourusername/nodevenv/jetset-johnsons/18/bin/activate` —
-   ignore it unless you're doing this over SSH.
-8. **Upload the files:** in cPanel → **File Manager**, navigate into the
-   application root folder cPanel just created, upload `jetset-johnsons.zip`,
-   and extract it there (so `server.js` sits directly inside the app root,
-   not inside a nested subfolder — if extracting creates an extra folder,
-   move everything up one level).
-9. Back on the **Setup Node.js App** page, open your app and scroll to
-   **Environment Variables**. Add these one at a time:
-   - `FAMILY_CODE` — pick a passcode your family will type once.
-   - `ANTHROPIC_API_KEY` — from [console.anthropic.com](https://console.anthropic.com).
-   - `GOOGLE_MAPS_API_KEY` — see the Google setup note below.
-   - `ANTHROPIC_MODEL` — leave as `claude-sonnet-5` unless you want a different model.
+1. Upload every file in this zip directly into your domain or subdomain's
+   document root (in File Manager or via FTP) — so `index.html` sits right
+   at the root, not in a nested subfolder.
+2. In File Manager, enable **Show Hidden Files (dotfiles)**, then rename
+   `.env.example` to `.env` and fill in at least `FAMILY_CODE`. Add
+   `ANTHROPIC_API_KEY` and `GOOGLE_MAPS_API_KEY` whenever you're ready —
+   the app works without them, just with fewer features (see the main
+   project notes on free vs. paid features).
+3. That's it — no install step. Visit your domain. You should see the
+   family-code gate immediately.
 
-   (You can also skip this step and instead rename `.env.example` to `.env`
-   in File Manager and fill in the values there — the server reads either.)
-10. Click **Run NPM Install** on the app page. This installs Express using
-    cPanel's own npm, which matters — a `node_modules` folder installed on
-    your laptop may not be binary-compatible with the server.
-11. Click **Restart** (or **Start**).
-12. Visit your Application URL. You should see the family-code gate. Enter
-    the code you set and a name.
+### If something doesn't work
 
-### If you'd rather do it over SSH
-```
-cd ~/jetset-johnsons        # your application root
-cp .env.example .env        # then edit .env with your real values
-npm install
-```
-Then restart the app from the cPanel UI so Passenger picks up the change.
-
-## Setting up the Google Maps key (optional but recommended)
-
-Real photos, ratings, websites, and exact pin positions all come from
-**Places API (New)**. Without this key the app still works — it just uses
-illustrated skylines/covers instead of photos, and map pins are
-approximate.
-
-1. In [Google Cloud Console](https://console.cloud.google.com), create (or
-   pick) a project.
-2. **APIs & Services → Library** → enable **Places API (New)**.
-3. **Billing** must be enabled on that project (Places API isn't free, but
-   Google's monthly free credit covers normal family use).
-4. **APIs & Services → Credentials** → create an API key, then restrict it
-   to Places API (New) for safety.
-5. Paste it into `GOOGLE_MAPS_API_KEY`.
-
-If photos don't show up after deploying, check the server's error log
-(cPanel → Setup Node.js App → your app → **Errors log**, or
-`stderr.log` in the application root) for a line starting with
-`Places search failed:` — it prints Google's exact rejection reason
-(usually "API not enabled" or "billing not enabled").
-
-## Setting up the Anthropic key (optional but recommended)
-
-Needed for the restaurant/activity finders, the "Popular things to do"
-generator, event/game search, and menu-link lookups. Without it, those
-buttons show a plain note instead of failing.
+- **Blank page or 500 error:** check cPanel's **Errors** page (or
+  `error_log` in File Manager) for the actual PHP error.
+- **"Wrong family code" even though you typed it right:** double-check
+  `.env` was saved as `.env`, not `.env.example.txt` or similar — some
+  file managers silently add an extension when renaming. Confirm with
+  `ls -la` in Terminal if you have it.
+- **App loads but every button errors:** open your browser's dev tools →
+  Network tab, click a button, and check what `/api/...` request failed
+  and with what status code — that'll point at the exact cause.
+- **"Failed to save" or a blank response when adding a pin:** the `data/`
+  folder needs to be writable by PHP. In File Manager, right-click `data` →
+  Permissions, and set it to `755` (or `775` if `755` isn't enough on your
+  host) — most shared hosting already sets this correctly on upload, but
+  it's the first thing to check if writes fail.
+- **`.htaccess` seems to be ignored (rewrite doesn't work):** some very
+  locked-down hosts disable `.htaccess` overrides entirely. If `/api/cities`
+  in your browser gives a 404 instead of a 401 (wrong code) or JSON, ask
+  your host to confirm `AllowOverride All` (or at least `AllowOverride
+  FileInfo`) is set for your account.
 
 ## Keeping your family's data safe on redeploy
 
 `data/db.json` is where every pin, plan, and cached list lives once your
-family starts using the app. **If you ever re-upload a new zip to update
-the app, don't overwrite `data/db.json`** — re-upload just `server.js` and
-the `public/` folder, or download a fresh copy of your live `data/db.json`
-first and put it back after extracting.
+family starts using the app. **If you re-upload files to update the app,
+don't overwrite `data/db.json`** unless you mean to reset it — just
+re-upload `index.html`, `sw.js`, `lib.php`, and the `api/` folder.
 
-## API routes (for reference)
+## Differences from the Node.js version
 
-- `GET /api/config`
-- `GET/PUT/PATCH/DELETE /api/cities[/:id]`
-- `PUT/PATCH/DELETE /api/cities/:id/pins/:pid`
-- `PUT /api/cities/:id/live/:kind` (`kind` = `see` | `events` | `games` | `traditions`)
-- `POST /api/ai` — one-off JSON-only Claude call
-- `POST /api/cities/:id/refresh` — `{kind: "events"|"games"}`, uses Claude + web search
-- `POST /api/cities/:id/photo` — cycles the city's cover photo
-- `GET /api/photo/:placeId` — Google photo proxy (keeps the key server-side)
-- `GET /api/cities/:id/pins/:pid/ics` — calendar file with reminders
-
-All `/api/*` routes require either an `x-family-code` header or a `?c=`
-query parameter matching `FAMILY_CODE`.
-
-## Known simplifications in this MVP
-
-- The sports tab's team database covers ~40 major US metros with common
-  aliases — ask for more to be added if your destination isn't listed.
-- Background enrichment (Places lookups, menu links) runs after a pin is
-  saved and finishes within a few seconds; the app picks it up on its next
-  20-second poll.
-- The map's "scale bar" is only meaningfully accurate once at least two
-  pins have real Google coordinates; otherwise pin positions are
-  deterministic-but-approximate placeholders.
+- **Enrichment is synchronous, not backgrounded.** When you add an eat/play/see
+  pin, the Google Places lookup (and, for restaurants, the menu-link search)
+  happens before the response comes back — so saving a pin can take a couple
+  of extra seconds when those keys are configured, instead of finishing
+  silently in the background. Functionally the same result, just a different
+  wait.
+- **The photo proxy uses a query parameter** (`/api/photo?ref=...`) instead
+  of a path segment, because Google's photo reference contains literal
+  slashes that don't survive being embedded in a URL path segment reliably
+  across different Apache configurations.
+- Everything else — every screen, every button, every pin field, the ICS
+  export, the map, the sports database — works identically to the Node
+  version, because the frontend (`index.html`) is the exact same file.
