@@ -5,11 +5,11 @@
 
 const CACHE_NAME = 'jetset-shell-v1';
 const SHELL_ASSETS = [
-  '/',
-  '/manifest.webmanifest',
-  '/icon-192.png',
-  '/icon-512.png',
-  '/apple-touch-icon.png',
+  './',
+  './manifest.webmanifest',
+  './icon-192.png',
+  './icon-512.png',
+  './apple-touch-icon.png',
 ];
 
 self.addEventListener('install', (event) => {
@@ -36,7 +36,7 @@ self.addEventListener('fetch', (event) => {
 
   // Cross-origin (Google Fonts, Places photos, etc.) and every /api/*
   // call: let the browser handle it normally — never intercept, never cache.
-  if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) {
+  if (url.origin !== self.location.origin || url.pathname.indexOf('/api/') !== -1) {
     return;
   }
 
@@ -44,7 +44,7 @@ self.addEventListener('fetch', (event) => {
   // build when online), fall back to the cached shell when offline.
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(() => caches.match('/'))
+      fetch(request).catch(() => caches.match('./'))
     );
     return;
   }

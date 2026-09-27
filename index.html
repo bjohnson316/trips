@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Jetset Johnsons</title>
-<link rel="manifest" href="/manifest.webmanifest">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="icon" href="/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
 <meta name="theme-color" content="#6366f1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -216,7 +216,7 @@ const cyclePhoto = cid => api(`/cities/${cid}/photo`, {method:'POST'});
 function renderGate(err){
   document.getElementById('gate').innerHTML = `
     <div class="gate-card">
-      <img class="gate-logo" src="/icon-192.png" alt="">
+      <img class="gate-logo" src="icon-192.png" alt="">
       <h1>Jetset Johnsons</h1>
       <p>Enter your family code to get in.</p>
       <div class="field"><label>Family code</label><input type="password" id="gc-code" placeholder="Shared code"></div>
@@ -982,7 +982,7 @@ async function boot(){
 }
 
 if ('serviceWorker' in navigator){
-  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('/sw.js').catch(()=>{}); });
+  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
 }
 
 (function init(){
