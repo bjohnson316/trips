@@ -276,8 +276,8 @@ const photoUrl=()=>"";   // city/place photos need a server-side Google key; not
 function cityBg(c,w){
   const p=c.photo,shade="linear-gradient(to top,rgba(0,0,0,.62),rgba(0,0,0,.08) 55%,rgba(0,0,0,.25))";
   if(!p)return grad(c.name);
-  const u=p.type==="unsplash"?p.url+(p.url.includes("?")?"&":"?")+"w="+w:photoUrl(p.placeId,w,p.i||0);
-  return `${shade},url('${u}') center/cover no-repeat,${grad(c.name)}`;
+  const u=p.type==="wiki"?p.url:p.type==="unsplash"?p.url+(p.url.includes("?")?"&":"?")+"w="+w:photoUrl(p.placeId,w,p.i||0);
+  return `${shade},url('${String(u).replace(/'/g,"%27")}') center/cover no-repeat,${grad(c.name)}`;
 }
 const menuLink=(it,c)=>it.menuUrl||g((it.name||it.title)+" "+c.name+" menu");
 function thumb(it){
@@ -355,7 +355,55 @@ function writeFailed(e){S.err=errText(e);render()}
 // Writes apply on this device instantly (and to everyone else when online). If we're offline they
 // keep queueing, so don't hold the screen waiting on the network for more than a moment.
 function commit(p){p.catch(writeFailed);return Promise.race([p,new Promise(r=>setTimeout(r,1500))])}
-const aiJSON=async()=>{throw Object.assign(new Error("off"),{code:"off"})};
+/* ---------- Claude (optional, bring-your-own-key) ----------
+   The key is typed into this device once and kept in this browser's storage only. It is never written
+   to Firestore or the repo. The lists it generates are saved to the family's shared data, so only one
+   person needs a key. */
+const AI_MODEL="claude-sonnet-5";
+const aiKey=()=>LS.get("jj_akey");
+function aiFail(status,j){
+  const m=String(j&&j.error&&j.error.message||"");let code="failed";
+  if(status===401||status===403)code="bad_key";
+  else if(status===429)code="rate_limited";
+  else if(/credit balance|billing/i.test(m))code="no_credit";
+  else if(/web.?search/i.test(m))code="no_search";
+  return Object.assign(new Error(m||"Request failed"),{code});
+}
+async function aiCall(body,ms=60000){
+  const ac=new AbortController(),t=setTimeout(()=>ac.abort(),ms);
+  try{
+    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",signal:ac.signal,
+      headers:{"content-type":"application/json","x-api-key":aiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify(body)});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok)throw aiFail(r.status,j);
+    return j;
+  }catch(e){
+    if(e.name==="AbortError")throw Object.assign(new Error("timed out"),{code:"timeout"});
+    if(!e.code)throw Object.assign(new Error("network"),{code:"network"});
+    throw e;
+  }finally{clearTimeout(t)}
+}
+const aiText=j=>(j.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
+function parseList(t){
+  const s=String(t||"").replace(/```(?:json)?/gi,""),a=s.indexOf("["),b=s.lastIndexOf("]");
+  if(a>=0&&b>a){try{const v=JSON.parse(s.slice(a,b+1));if(Array.isArray(v))return v}catch{}}
+  throw Object.assign(new Error("bad json"),{code:"invalid_json"});
+}
+const AI_SYS="You reply with only valid JSON. No prose, no markdown, no code fences.";
+const aiJSON=async prompt=>parseList(aiText(await aiCall({model:AI_MODEL,max_tokens:2500,system:AI_SYS,messages:[{role:"user",content:prompt}]})));
+async function aiSearchJSON(prompt){
+  const messages=[{role:"user",content:prompt}],tools=[{type:"web_search_20250305",name:"web_search",max_uses:6}];
+  let j;
+  for(let i=0;i<5;i++){
+    j=await aiCall({model:AI_MODEL,max_tokens:4000,system:AI_SYS+" Search the web first, then reply with only the final JSON.",tools,messages},170000);
+    if(j.stop_reason!=="pause_turn")break;
+    messages.push({role:"assistant",content:j.content});   // long searches pause; hand the turn back to continue
+  }
+  return parseList(aiText(j));
+}
+const AI_MSG={bad_key:"Anthropic rejected that key. Check it in settings (tap your name).",no_credit:"Your Anthropic balance is empty. Add credit in the Anthropic console.",rate_limited:"Too many requests. Try again in a minute.",no_search:"Turn on web search in the Anthropic console (Settings, then Privacy).",timeout:"That took too long. Try again.",network:"Couldn't reach Anthropic. Check your connection.",invalid_json:"That list didn't come through. Try again.",no_dates:"Add trip dates first."};
+const aiErrText=(e,fallback)=>AI_MSG[e&&e.code]||fallback;
 
 const SEED_SEE=[{"name":"Freedom Trail","kind":"","why":"Two and a half miles of red-brick path past 16 historic sites.","area":"Downtown","typical_timing":"","lat":42.3555,"lng":-71.064},{"name":"Faneuil Hall Marketplace","kind":"","why":"Historic market hall with food stalls, shops and street performers.","area":"Downtown","typical_timing":"","lat":42.36,"lng":-71.0568},{"name":"Boston Public Garden","kind":"","why":"America's first public botanical garden. Swan boats, duckling statues.","area":"Back Bay","typical_timing":"","lat":42.3541,"lng":-71.0699},{"name":"Museum of Fine Arts","kind":"","why":"One of the country's largest art museums, from Egypt to modern.","area":"Fenway","typical_timing":"","lat":42.3394,"lng":-71.094},{"name":"New England Aquarium","kind":"","why":"Harborside aquarium built around a four-story ocean tank.","area":"Waterfront","typical_timing":"","lat":42.359,"lng":-71.0496},{"name":"Fenway Park","kind":"","why":"Home of the Red Sox and the oldest ballpark in the majors.","area":"Fenway","typical_timing":"","lat":42.3467,"lng":-71.0972},{"name":"Boston Common","kind":"","why":"The country's oldest public park and the Freedom Trail's start.","area":"Downtown","typical_timing":"","lat":42.355,"lng":-71.0656},{"name":"USS Constitution","kind":"","why":"The world's oldest commissioned warship still afloat.","area":"Charlestown","typical_timing":"","lat":42.3726,"lng":-71.0566},{"name":"Paul Revere House","kind":"","why":"Boston's oldest surviving building, home of the midnight rider.","area":"North End","typical_timing":"","lat":42.3637,"lng":-71.0537},{"name":"Boston Tea Party Ships & Museum","kind":"","why":"Hands-on waterfront museum with replica ships and a reenactment.","area":"Seaport","typical_timing":"","lat":42.3522,"lng":-71.0508},{"name":"Harvard Square","kind":"","why":"Bookshops, cafes and Harvard Yard, just across the river.","area":"Cambridge","typical_timing":"","lat":42.3736,"lng":-71.119},{"name":"Quincy Market","kind":"","why":"Long domed hall packed with New England food vendors.","area":"Downtown","typical_timing":"","lat":42.3598,"lng":-71.0549}];
 function seedCities(){
@@ -393,6 +441,7 @@ function subscribe(){
     CITYDOCS={};snap.docs.forEach(d=>{CITYDOCS[d.id]=d.data()});
     const was=S.ready;S.ready=true;S.err="";
     if(applyDocs()||!was)render();
+    S.cities.forEach(ensureCityPhoto);
   },e=>{S.err=errText(e);S.ready=true;render()});
 }
 const store={
@@ -436,12 +485,12 @@ function navHTML(){
 }
 function cityHTML(){
   const c=city(),l=tripLabel(c),n=S.pins.length;
-  const p=c.photo,canPhoto=S.places||p?.type==="unsplash";
+  const p=c.photo,canPhoto=S.places||S.photos||p?.type==="unsplash";
   return `${banner()}<section class="hero ${p?"photo":""}" style="background:${esc(cityBg(c,1400))}">
    <div class="bar"><button class="hbtn" data-act="home">‹ Trips</button><div class="grp">${canPhoto?`<button class="hbtn" data-act="newPhoto" ${S.busy.photo?"disabled":""} aria-label="New photo">${S.busy.photo?"…":"New photo"}</button>`:""}<button class="hbtn" data-act="editCity">Edit</button></div></div>
    <h1 class="city-name">${esc(c.name)}</h1>
    <div class="meta"><button class="pill" data-act="editCity">${esc(l.top)}</button>${l.sub?`<span class="pill">${esc(l.sub)}</span>`:""}<span class="pill">${n} ${n===1?"pin":"pins"}</span></div>
-   ${p?.credit?`<a class="credit" href="${esc(p.creditUrl||"#")}" target="_blank" rel="noopener">Photo: ${esc(p.credit)}${p.type==="unsplash"?" on Unsplash":""}</a>`:""}
+   ${p?.credit?`<a class="credit" href="${esc(p.creditUrl||"#")}" target="_blank" rel="noopener">Photo: ${esc(p.credit)}${p.type==="unsplash"?" on Unsplash":p.type==="wiki"?" · Wikimedia Commons":""}</a>`:""}
   </section>
   <div style="--c:${catColor(S.tab)}">${tabHTML(c)}</div>`;
 }
@@ -471,7 +520,7 @@ const SEARCH={eat_best:"best restaurants",eat_local:"classic local restaurants",
 function searchLink(kind,c){
   const q=SEARCH[kind];if(!q)return "";
   const url=kind==="annual"?g(q+" in "+c.name+" "+monthsLabel(c)):mapsQ(q,c.name);
-  return `<a class="chip go" href="${esc(url)}" target="_blank" rel="noopener">${ico(kind==="annual"?"events":"map")}Search “${esc(q)}”${kind==="annual"?"":" on Google Maps"}</a><p class="note" style="margin-top:8px">Found something good? Pin it above so the whole family sees it.</p>`;
+  return `<a class="chip go" href="${esc(url)}" target="_blank" rel="noopener">${ico(kind==="annual"?"events":"map")}Search “${esc(q)}”${kind==="annual"?"":" on Google Maps"}</a><p class="note" style="margin-top:8px">Found something good? Pin it above so the whole family sees it. <button class="chip quiet" data-act="setupOpen">Turn on AI suggestions</button></p>`;
 }
 function aiBtn(kind,label){
   if(!S.ready)return "";
@@ -520,8 +569,20 @@ function liveBtn(kind,c,label){
 async function refreshLive(kind){
   const c=city();if(!c||S.busy["r_"+kind])return;
   S.busy["r_"+kind]=true;render();
-  try{const j=await API.req("POST",`/cities/${c.id}/refresh`,{kind});await loadCity();toast(j.count?`Found ${j.count}`:"Nothing found for those dates")}
-  catch(e){toast(e.code==="rate_limited"?"Too many requests. Try again shortly.":e.code==="no_dates"?"Add trip dates first.":"Couldn't load right now. Try again.")}
+  try{
+    if(!c.start)throw Object.assign(new Error("no dates"),{code:"no_dates"});
+    const s=c.start,e=c.end||s,L={month:"long",day:"numeric",year:"numeric"},span=s===e?fmt(s,L):fmt(s,L)+" to "+fmt(e,L);
+    const prompt=kind==="events"
+      ?`Search the web for real, scheduled public events in or near ${c.name} between ${s} and ${e} (${span}): concerts, festivals, theater and comedy shows, exhibitions and seasonal events. Only include events you found a real listing for. Reply with only a JSON array of objects: {"name": string, "date": "YYYY-MM-DD", "time": string (local, like "7:30 PM", or ""), "venue": string, "url": string (the listing, or "")}. Reply [] if you find none.`
+      :`Search official league schedules for professional and major college games played in or near ${c.name} between ${s} and ${e} (${span}). Only include games you found on a real schedule. Reply with only a JSON array of objects: {"league": string, "matchup": string (like "Celtics vs Knicks"), "date": "YYYY-MM-DD", "time": string (local, like "7:30 PM", or ""), "venue": string, "url": string (the schedule or ticket page, or "")}. Reply [] if you find none.`;
+    const raw=await aiSearchJSON(prompt);
+    const str=v=>String(v==null?"":v);
+    const items=raw.filter(x=>x&&typeof x==="object"&&/^\d{4}-\d{2}-\d{2}$/.test(str(x.date))&&inRange(x.date,c)).slice(0,40).map(x=>kind==="events"
+      ?{name:str(x.name),date:x.date,time:str(x.time),venue:str(x.venue),url:str(x.url)}
+      :{league:str(x.league),matchup:str(x.matchup),date:x.date,time:str(x.time),venue:str(x.venue),url:str(x.url)}).filter(x=>kind==="events"?x.name:x.matchup);
+    await store.setLive(c.id,kind,{items,at:Date.now(),note:""});
+    toast(items.length?`Found ${items.length}`:"Nothing found for those dates");
+  }catch(err){toast(aiErrText(err,"Couldn't load right now. Try again."))}
   finally{S.busy["r_"+kind]=false;render()}
 }
 function eventsHTML(c){
@@ -566,7 +627,7 @@ function mapHTML(c){
   const f=S.mapFilter,pins=S.pins.filter(p=>f==="all"||p.cat===f);
   let pts=pins.filter(hasGeo);
   if(pts.length>2){const med=a=>[...a].sort((x,y)=>x-y)[Math.floor(a.length/2)];const la=med(pts.map(p=>p.lat)),ln=med(pts.map(p=>p.lng));pts=pts.filter(p=>km(p.lat,p.lng,la,ln)<80)}
-  const offMap=pins.filter(p=>!pts.includes(p)),untried=S.pins.filter(p=>!hasGeo(p)&&!p.geoTried);
+  const offMap=pins.filter(p=>!pts.includes(p)),untried=S.pins.filter(p=>!hasGeo(p)&&!p.geoTried&&["eat","play","see"].includes(p.cat));
   const cats=["all","eat","play","see","events","games"].filter(k=>k==="all"||S.pins.some(p=>p.cat===k));
   const seg=`<div class="seg">${cats.map(k=>`<button style="--c:${k==="all"?"var(--ink)":catColor(k)}" aria-pressed="${f===k}" data-act="mapFilter" data-k="${k}">${k==="all"?"Everything":TABS.find(t=>t.k===k).label}</button>`).join("")}</div>`;
   const route=pts.slice(0,10);
@@ -597,10 +658,11 @@ function mapHTML(c){
   const sel=S.pins.find(p=>p.id===S.mapSel);
   return `<section class="sec"><div class="sec-head"><div><h2>Everything we pinned</h2><p class="sub">Tap a pin for directions.${S.places?"":" Positions are approximate."}</p></div></div>${seg}
    <div class="mapbox">${svg||`<div class="empty" style="padding:40px 20px;text-align:center"><strong>No pins on the map yet</strong>Pin restaurants and sights and they'll show up here.</div>`}</div>
+   ${S.pins.some(p=>p.geoSrc==="osm")?`<p class="note" style="margin-top:8px">Some positions © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>.</p>`:""}
    ${sel?`<ul class="cards sel-card">${pinCard(sel,c)}</ul>`:""}
    <div class="acts" style="margin-top:12px">
     ${route.length>1?`<a class="chip go" style="--c:var(--map)" href="${esc(routeUrl)}" target="_blank" rel="noopener">${ico("map")}Open ${route.length} stops in Google Maps</a>`:""}
-    ${untried.length&&S.ai&&!S.places?`<button class="chip" data-act="locate" ${S.busy.locate?"disabled":""}>${ico("spark")}${S.busy.locate?"Placing…":"Place "+untried.length+" more on the map"}</button>`:""}
+    ${untried.length&&(S.geo||S.ai)&&!S.places?`<button class="chip" data-act="locate" ${S.busy.locate?"disabled":""}>${ico("spark")}${S.busy.locate?"Placing…":"Place "+untried.length+" more on the map"}</button>`:""}
    </div>
    ${offMap.length?`<p class="note" style="margin-top:10px">Not on the map: ${offMap.map(p=>esc(p.title)).join(", ")}. Use Directions on the pin instead.</p>`:""}
   </section>`;
@@ -616,15 +678,112 @@ async function locate(list){
   }catch{}
 }
 
+/* ---------- Free map positions (OpenStreetMap) and city photos (Wikipedia / Wikimedia Commons) ----------
+   No keys and no accounts; requests go straight from the browser. */
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const GEO_GAP=window.GEO_GAP_MS||1100;   // OpenStreetMap's Nominatim policy: at most one request per second
+const getJSON=async u=>{const r=await fetch(u);if(!r.ok)throw new Error("HTTP "+r.status);return r.json()};
+async function osmFind(title,c){
+  const ck="jj_osm:"+c.id+":"+String(title).toLowerCase(),hit=LS.get(ck);
+  if(hit)return hit==="none"?null:JSON.parse(hit);
+  const g0=c.geo&&typeof c.geo.lat==="number"?c.geo:null,d=.4;   // stay within ~25 miles of the city so we never pin the wrong Springfield
+  const u="https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q="+encodeURIComponent(title+", "+c.name)
+    +(g0?`&viewbox=${(g0.lng-d).toFixed(4)},${(g0.lat+d).toFixed(4)},${(g0.lng+d).toFixed(4)},${(g0.lat-d).toFixed(4)}&bounded=1`:"");
+  const rows=await getJSON(u),r=rows&&rows[0];
+  const out=r&&isFinite(+r.lat)&&isFinite(+r.lon)?{lat:+(+r.lat).toFixed(5),lng:+(+r.lon).toFixed(5)}:null;
+  LS.set(ck,out?JSON.stringify(out):"none");
+  return out;
+}
+let geoChain=Promise.resolve();
+function placePins(list){geoChain=geoChain.then(()=>doPlace(list)).catch(()=>{});return geoChain}
+async function doPlace(list){
+  const aiLeft=[];
+  for(const p of list){
+    const cid=p.cid||S.cityId,c=S.cities.find(x=>x.id===cid);if(!c)continue;
+    if(!["eat","play","see"].includes(p.cat)){try{await store.updatePin(cid,p.id,{geoTried:true})}catch{}continue}   // events/games aren't places
+    let r=null,down=false;
+    if(S.geo){try{r=await osmFind(p.title,c)}catch{down=true}await sleep(GEO_GAP)}
+    try{
+      if(r)await store.updatePin(cid,p.id,{lat:r.lat,lng:r.lng,geoTried:true,geoSrc:"osm"});
+      else if(!down&&S.ai)aiLeft.push({id:p.id,title:p.title});
+      else if(!down)await store.updatePin(cid,p.id,{geoTried:true});   // if the lookup itself failed, leave it to try again later
+    }catch{}
+  }
+  if(aiLeft.length)await locate(aiLeft);
+}
+
+const STATES={AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"North Carolina",ND:"North Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"West Virginia",WI:"Wisconsin",WY:"Wyoming",DC:"District of Columbia"};
+function wikiQuery(name){   // "Salem MA" -> "Salem, Massachusetts"
+  const n=String(name).trim(),m=n.match(/^(.*?)[,\s]+([A-Za-z]{2})\.?$/);
+  return m&&STATES[m[2].toUpperCase()]?m[1].trim()+", "+STATES[m[2].toUpperCase()]:n;
+}
+const noTags=s=>String(s||"").replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim();
+const WAPI="https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&";
+const CAPI="https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&";
+const fileUrl=f=>"https://commons.wikimedia.org/wiki/File:"+encodeURIComponent(String(f).replace(/ /g,"_"));
+const urlKey=u=>{try{return decodeURIComponent(u).toLowerCase()}catch{return String(u).toLowerCase()}};
+const creditOf=m=>[noTags(m&&m.Artist&&m.Artist.value).slice(0,60),noTags(m&&m.LicenseShortName&&m.LicenseShortName.value)].filter(Boolean).join(", ")||"Wikimedia Commons";
+async function wikiFind(name){
+  const j=await getJSON(WAPI+"generator=search&gsrnamespace=0&gsrlimit=5&gsrsearch="+encodeURIComponent(wikiQuery(name))+"&prop=pageimages|coordinates&piprop=thumbnail|name&pithumbsize=1400&pilimit=5&coprimary=primary&colimit=5");
+  const pages=Object.values(j&&j.query&&j.query.pages||{}).sort((a,b)=>(a.index||99)-(b.index||99));
+  const p=pages.find(x=>x.coordinates&&x.coordinates.length);   // only accept real places
+  return p?{title:p.title,lat:p.coordinates[0].lat,lng:p.coordinates[0].lon,thumb:p.thumbnail&&p.thumbnail.source||"",file:p.pageimage||""}:null;
+}
+async function fileCredit(file){
+  try{
+    const j=await getJSON(CAPI+"prop=imageinfo&iiprop=extmetadata&iiextmetadatafilter=Artist|LicenseShortName&titles="+encodeURIComponent("File:"+file));
+    const pg=Object.values(j&&j.query&&j.query.pages||{})[0],ii=pg&&pg.imageinfo&&pg.imageinfo[0];
+    return creditOf(ii&&ii.extmetadata);
+  }catch{return "Wikimedia Commons"}
+}
+async function commonsPhotos(title){
+  const j=await getJSON(CAPI+"generator=search&gsrnamespace=6&gsrlimit=30&gsrsearch="+encodeURIComponent(title+" skyline")+"&prop=imageinfo&iiprop=url|size|mime|extmetadata&iiurlwidth=1400&iiextmetadatafilter=Artist|LicenseShortName");
+  return Object.values(j&&j.query&&j.query.pages||{}).sort((a,b)=>(a.index||99)-(b.index||99)).map(pg=>{
+    const ii=pg.imageinfo&&pg.imageinfo[0];if(!ii||ii.mime!=="image/jpeg"||!ii.thumburl)return null;
+    const r=ii.width/ii.height;if(ii.width<1600||r<1.3||r>3.2)return null;   // wide, high-res photos only
+    return {type:"wiki",url:ii.thumburl,credit:creditOf(ii.extmetadata),creditUrl:ii.descriptionurl||fileUrl(String(pg.title).replace(/^File:/,""))};
+  }).filter(Boolean);
+}
+const PHOTO_C={},PHOTO_BUSY=new Set();
+async function photoCandidates(c){
+  const k=c.id+"|"+c.name;if(PHOTO_C[k])return PHOTO_C[k];
+  const f=await wikiFind(c.name);if(!f)return {geo:null,list:[]};
+  const list=[];
+  if(f.thumb&&f.file)list.push({type:"wiki",url:f.thumb,credit:await fileCredit(f.file),creditUrl:fileUrl(f.file)});
+  try{for(const x of await commonsPhotos(f.title))if(!list.some(y=>urlKey(y.creditUrl)===urlKey(x.creditUrl)))list.push(x)}catch{}
+  return PHOTO_C[k]={geo:{lat:f.lat,lng:f.lng},list:list.slice(0,12)};
+}
+async function ensureCityPhoto(c){   // runs once per trip; the result is saved so the whole family shares it
+  if(!S.photos||c.photo||c.photoTried||PHOTO_BUSY.has(c.id))return;
+  PHOTO_BUSY.add(c.id);
+  try{
+    const r=await photoCandidates(c),up={photoTried:true};
+    if(r.geo)up.geo=r.geo;
+    if(r.list.length)up.photo={...r.list[0],i:0};
+    await store.updateCity(c.id,up);
+  }catch{/* offline or blocked: try again next time */}
+  finally{PHOTO_BUSY.delete(c.id)}
+}
+async function nextCityPhoto(c){
+  const r=await photoCandidates(c);
+  if(r.list.length<2){toast("No other photos found.");return}
+  const i=((c.photo&&typeof c.photo.i==="number"?c.photo.i:-1)+1)%r.list.length;
+  await store.updateCity(c.id,{photo:{...r.list[i],i}});
+}
+
 /* ---------- Sheets ---------- */
 function sheet(html,locked){$("#modal").innerHTML=`<div class="scrim" ${locked?"":'data-act="close"'}><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${html}</div></div>`;const f=$("#modal input");f&&setTimeout(()=>f.focus(),60)}
 function closeSheet(){$("#modal").innerHTML=""}
 function setupSheet(msg){
-  const ok=API.name&&API.fid;
+  const ok=API.name&&API.fid,hasKey=!!aiKey();
   sheet(`<h3>Welcome to Jetset Johnsons</h3>${msg?`<p class="note" style="color:var(--eat)">${esc(msg)}</p>`:""}
   <label class="field"><span>Family code</span><input id="s-code" type="password" placeholder="${API.fid?"Leave blank to keep the current family":"At least 8 characters. Not case-sensitive."}" autocomplete="off" autocapitalize="off"></label>
   <label class="field"><span>Your name</span><input id="s-name" value="${esc(API.name)}" placeholder="Mom" autocomplete="given-name"></label>
   <p class="note">The code is the only lock on your family's trips, so make it long and hard to guess. Everyone who enters the same code shares the same trips.</p>
+  ${ok?`<details ${hasKey?"open":""} style="margin:6px 0 14px"><summary style="font-weight:600;color:var(--muted);cursor:pointer;padding:6px 0">AI suggestions (optional)</summary>
+   <label class="field" style="margin-top:8px"><span>Anthropic API key</span><input id="s-key" type="password" placeholder="${hasKey?"Saved on this device. Paste a new one to replace it":"sk-ant-…"}" autocomplete="off" autocapitalize="off"></label>
+   <p class="note">Turns on the “Find…” lists and the live event and game lookups. The key stays on this device only and is never saved to your family's data. Lists you make are shared with everyone, so only one person needs a key. The live lookups also need web search switched on in the Anthropic console (Settings, then Privacy).</p>
+   ${hasKey?`<button class="danger" data-act="clearKey">Remove key from this device</button>`:""}</details>`:""}
   <div class="foot"><span></span><button class="btn" data-act="saveSetup">Continue</button></div>`,!ok);
 }
 let PENDING_FID="";
@@ -670,7 +829,7 @@ async function runAI(kind){
     setTimeout(()=>loadCity().catch(()=>{}),45000);setTimeout(()=>loadCity().catch(()=>{}),90000);
     await store.setLive(c.id,kind,{items:items.slice(0,15).map(x=>({name:String(x.name||""),kind:String(x.kind||""),why:String(x.why||""),area:String(x.area||""),typical_timing:String(x.typical_timing||""),lat:num(x.lat),lng:num(x.lng)})).filter(x=>x.name),at:Date.now()});
   }catch(err){
-    toast({rate_limited:"Too many requests. Try again in a minute.",invalid_json:"That list didn't come through. Try again."}[err?.code]||"Couldn't load the list. Try again.");
+    toast(aiErrText(err,"Couldn't load the list. Try again."));
   }finally{S.busy[kind]=false;render()}
 }
 
@@ -678,7 +837,7 @@ async function runAI(kind){
 async function addPin(c,data){
   const id=newId(),full={note:"",url:"",when:"",status:"want",...data,byName:API.name,at:Date.now()};
   await store.setPin(c.id,id,full);
-  if(!S.places&&!hasGeo(full)&&["eat","play","see"].includes(full.cat))locate([{id,title:full.title}]);
+  if(!hasGeo(full)&&["eat","play","see"].includes(full.cat))placePins([{id,title:full.title,cat:full.cat,cid:c.id}]);
 }
 document.addEventListener("click",async ev=>{
   const el=ev.target.closest("[data-act]");if(!el)return;
@@ -692,13 +851,13 @@ document.addEventListener("click",async ev=>{
   if(a==="eatStyle"){S.eatStyle=el.dataset.k;render();return}
   if(a==="mapFilter"){S.mapFilter=el.dataset.k;S.mapSel=null;render();return}
   if(a==="mapSel"){S.mapSel=S.mapSel===el.dataset.id?null:el.dataset.id;render();return}
-  if(a==="locate"){S.busy.locate=true;render();await locate(S.pins.filter(p=>!hasGeo(p)&&!p.geoTried).slice(0,25));S.busy.locate=false;render();return}
+  if(a==="locate"){S.busy.locate=true;render();await placePins(S.pins.filter(p=>!hasGeo(p)&&!p.geoTried).slice(0,25).map(p=>({id:p.id,title:p.title,cat:p.cat,cid:S.cityId})));S.busy.locate=false;render();return}
   if(a==="saveCity"){
     const name=$("#f-name").value.trim(),start=$("#f-start").value,end=$("#f-end").value;
     if(!name){$("#f-name").focus();return}
     if(start&&end&&end<start){toast("Leave date is before arrive date.");return}
     try{
-      if(c&&S.cityId)await store.updateCity(c.id,{name,start,end});
+      if(c&&S.cityId)await store.updateCity(c.id,{name,start,end,...(name!==c.name?{photo:null,photoTried:false,geo:null}:{})});   // a new name means a new photo and position
       else{const id=newId();await store.setCity(id,{name,start,end,by:API.name,at:Date.now()});closeSheet();openCity(id);return}
       closeSheet();
     }catch{toast("Couldn't save. You may need edit access.")}
@@ -716,17 +875,21 @@ document.addEventListener("click",async ev=>{
   if(a==="delPin"){const p=S.pins.find(x=>x.id===el.dataset.id);if(p&&confirm(`Remove ${p.title}?`))try{if(S.mapSel===p.id)S.mapSel=null;await store.delPin(c.id,p.id)}catch{toast("Couldn't remove.")}return}
   if(a==="ai")return runAI(el.dataset.kind);
   if(a==="refresh")return refreshLive(el.dataset.kind);
-  if(a==="newPhoto"){S.busy.photo=true;render();try{await API.req("POST",`/cities/${c.id}/photo`);await loadCities()}catch{toast("No other photos found.")}finally{S.busy.photo=false;render()}return}
+  if(a==="newPhoto"){S.busy.photo=true;render();try{await nextCityPhoto(c)}catch{toast("Couldn't find another photo. Check your connection.")}finally{S.busy.photo=false;render()}return}
   if(a==="setupOpen")return setupSheet();
   if(a==="saveSetup"){
     const name=$("#s-name").value.trim(),code=($("#s-code")?.value||"").trim();
     if(!name){$("#s-name").focus();return}
     if(!code&&!API.fid){$("#s-code").focus();return}
     if(code&&code.length<8){toast("Use a code that's at least 8 characters.");return}
+    const key=($("#s-key")?.value||"").trim();
+    if(key&&!/^sk-/.test(key)){toast("That doesn't look like an Anthropic key. It starts with sk-ant-.");return}
+    if(key)LS.set("jj_akey",key);
     API.name=name;LS.set("jj_name",name);
     let fid;if(code){try{fid=await familyIdFor(code)}catch{toast("This browser can't hash the code. Use https.");return}}
     closeSheet();lastCities="";start(fid);return;
   }
+  if(a==="clearKey"){LS.set("jj_akey","");S.ai=false;closeSheet();render();toast("Key removed from this device");return}
   if(a==="cancelCreate"){setupSheet();return}
   if(a==="createFamily"){
     el.disabled=true;el.textContent="Creating…";
@@ -755,7 +918,7 @@ function enterFamily(fid){
   API.fid=fid;LS.set("jj_fid",fid);S.err="";subscribe();
 }
 async function start(newFid){
-  S.ai=false;S.places=false;S.needsCode=true;
+  S.ai=!!aiKey();S.places=false;S.geo=true;S.photos=true;S.needsCode=true;
   const fid=newFid||API.fid;
   if(!API.name||!fid){S.ready=true;render();setupSheet();return}
   try{
