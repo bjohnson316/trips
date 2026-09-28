@@ -151,17 +151,18 @@ textarea{resize:vertical; min-height:60px;}
 <div id="sheetHost"></div>
 <div id="toastHost"></div>
 
+<script src="firebase-bundle.js"></script>
 <script>
 /* =========================================================================
    State & storage
    ========================================================================= */
-const LS = { code:'jj_code', name:'jj_name', theme:'jj_theme' };
+const LS = { fid:'jj_fid', name:'jj_name', theme:'jj_theme' };
 let STATE = {
-  familyCode: localStorage.getItem(LS.code) || '',
+  familyId: localStorage.getItem(LS.fid) || '',
   name: localStorage.getItem(LS.name) || '',
-  cities: {},
-  config: {},
-  pollTimer: null,
+  // No server in this version, so no AI suggestions or Google Places photos.
+  config: { hasAI:false, hasMaps:false },
+  unsub: null,
 };
 
 const CAT = {
@@ -187,56 +188,189 @@ function toast(msg){
 }
 
 /* =========================================================================
-   API
+   Firebase / Firestore data layer
+   Data lives at families/{familyId}/cities/{cityId}. familyId is the SHA-256
+   hash of the family code, so the code itself never leaves the device.
    ========================================================================= */
-async function api(path, opts={}){
-  const headers = Object.assign({'x-family-code': STATE.familyCode}, opts.body ? {'content-type':'application/json'} : {}, opts.headers||{});
-  const r = await fetch('/api'+path, Object.assign({}, opts, { headers, body: opts.body ? JSON.stringify(opts.body) : undefined }));
-  if (r.status === 401){ localStorage.removeItem(LS.code); location.reload(); throw new Error('unauthorized'); }
-  const data = await r.json().catch(()=> ({}));
-  if (!r.ok) throw new Error(data.error || 'Request failed');
-  return data;
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBFvs8iiz_xhTODPcNOohTEJUEpXEs4v_Y",
+  authDomain: "jetset-d5503.firebaseapp.com",
+  projectId: "jetset-d5503",
+  storageBucket: "jetset-d5503.firebasestorage.app",
+  messagingSenderId: "471799585142",
+  appId: "1:471799585142:web:833468d2ad00514276c257"
+};
+
+const PIN_DEFAULTS = {
+  category:'see', title:'', note:'', url:'', when:'', status:'want', byName:'',
+  lat:null, lng:null, placeId:null, rating:null, website:null, photoRef:null, menuUrl:null,
+  tickets:false, tDate:'', tTime:'', tTz:'', tNote:'', remind:'1440,180',
+  venue:'', evDate:'', evTime:''
+};
+
+// Starter trips, written into a brand-new family space the first time a code is used.
+const SEED_CITIES = {"mujyc2ysi4iris":{"id":"mujyc2ysi4iris","name":"Boston","state":"MA","startDate":"2026-10-29","endDate":"2026-11-02","photoUrl":null,"photoIndex":0,"pins":{"mujyc31bostonia":{"id":"mujyc31bostonia","category":"eat","title":"Bostonia","note":"Clam Chowder","url":"","when":"","status":"want","byName":"","lat":null,"lng":null,"placeId":null,"rating":null,"website":null,"photoRef":null,"menuUrl":null,"tickets":false,"tDate":"","tTime":"","tTz":"","tNote":"","remind":"1440,180","venue":"","evDate":"","evTime":"","createdAt":"2026-09-01T00:00:00.000Z"}},"live":{"see":{"items":[{"name":"Freedom Trail","type":"landmark","blurb":"A 2.5-mile red-brick trail linking 16 historic sites through downtown Boston."},{"name":"Faneuil Hall Marketplace","type":"market","blurb":"Historic market hall with food stalls, shops, and street performers."},{"name":"Boston Public Garden","type":"park","blurb":"America's first public botanical garden — swan boats and the Make Way for Ducklings statues."},{"name":"Museum of Fine Arts","type":"museum","blurb":"One of the largest art museums in the US, with an encyclopedic collection."},{"name":"New England Aquarium","type":"water","blurb":"Harborside aquarium centered on a four-story ocean tank."},{"name":"Fenway Park","type":"landmark","blurb":"Home of the Red Sox and the oldest ballpark still in use in MLB."},{"name":"Boston Common","type":"park","blurb":"The oldest city park in the US, anchoring the start of the Freedom Trail."},{"name":"USS Constitution","type":"landmark","blurb":"The world's oldest commissioned warship still afloat, docked in Charlestown."},{"name":"Paul Revere House","type":"landmark","blurb":"Boston's oldest surviving structure, home of the famous midnight rider."},{"name":"Boston Tea Party Ships & Museum","type":"experience","blurb":"Interactive waterfront museum with a reenactment and replica ships."},{"name":"Harvard Square","type":"neighborhood","blurb":"Bookshops, cafes, and Harvard Yard just across the river in Cambridge."},{"name":"Quincy Market","type":"market","blurb":"Long domed market hall packed with New England food vendors."}],"at":"2026-09-01T00:00:00.000Z","note":""},"events":{"items":[],"at":null,"note":""},"games":{"items":[],"at":null,"note":""},"traditions":{"items":[],"at":null,"note":""}}},"mujyq2mcb4gyk1":{"id":"mujyq2mcb4gyk1","name":"Salem","state":"MA","startDate":"2026-10-31","endDate":"2026-10-31","photoUrl":null,"photoIndex":0,"pins":{},"live":{"see":{"items":[],"at":null,"note":""},"events":{"items":[],"at":null,"note":""},"games":{"items":[],"at":null,"note":""},"traditions":{"items":[],"at":null,"note":""}}}};
+
+const fbApp = FB.initializeApp(FIREBASE_CONFIG);
+let fsdb;
+try {
+  // Offline-friendly: reads are cached on the device and writes queue until you're back online.
+  fsdb = FB.initializeFirestore(fbApp, { localCache: FB.persistentLocalCache({ tabManager: FB.persistentMultipleTabManager() }) });
+} catch (e) {
+  fsdb = FB.initializeFirestore(fbApp, {});
 }
-const getCities = () => api('/cities');
-const getCity = id => api('/cities/'+id);
-const putCity = (id, body) => api('/cities/'+id, {method:'PUT', body});
-const patchCity = (id, body) => api('/cities/'+id, {method:'PATCH', body});
-const delCity = id => api('/cities/'+id, {method:'DELETE'});
-const putPin = (cid, pid, body) => api(`/cities/${cid}/pins/${pid}`, {method:'PUT', body});
-const patchPin = (cid, pid, body) => api(`/cities/${cid}/pins/${pid}`, {method:'PATCH', body});
-const delPin = (cid, pid) => api(`/cities/${cid}/pins/${pid}`, {method:'DELETE'});
-const putLive = (cid, kind, items, note) => api(`/cities/${cid}/live/${kind}`, {method:'PUT', body:{items, note}});
-const refreshLive = (cid, kind) => api(`/cities/${cid}/refresh`, {method:'POST', body:{kind}});
-const aiJSON = (prompt, system) => api('/ai', {method:'POST', body:{prompt, system}});
-const cyclePhoto = cid => api(`/cities/${cid}/photo`, {method:'POST'});
+
+const nowISO = () => new Date().toISOString();
+const clean = o => JSON.parse(JSON.stringify(o));          // Firestore rejects undefined values
+const pick = (...vals) => vals.find(v => v !== undefined);
+function genId(prefix){
+  const rnd = Array.from(crypto.getRandomValues(new Uint8Array(4))).map(b => b.toString(16).padStart(2,'0')).join('');
+  return prefix + Date.now().toString(36) + rnd;
+}
+const cityCol = () => FB.collection(fsdb, 'families', STATE.familyId, 'cities');
+const cityRef = id => FB.doc(fsdb, 'families', STATE.familyId, 'cities', id);
+const metaRef = fid => FB.doc(fsdb, 'families', fid, 'meta', 'info');
+function cityFromSnap(snap){
+  const d = snap.data();
+  d.id = snap.id; d.pins = d.pins || {}; d.live = d.live || {};
+  return d;
+}
+
+const getCities = async () => (await FB.getDocs(cityCol())).docs.map(cityFromSnap);
+async function getCity(id){
+  const s = await FB.getDoc(cityRef(id));
+  if (!s.exists()) throw new Error('City not found');
+  return cityFromSnap(s);
+}
+async function putCity(id, body){
+  const realId = id === 'new' ? genId('c') : id;
+  let existing = {};
+  if (id !== 'new'){ const s = await FB.getDoc(cityRef(realId)); if (s.exists()) existing = s.data(); }
+  const city = {
+    id: realId,
+    name: pick(body.name, existing.name, ''), state: pick(body.state, existing.state, ''),
+    startDate: pick(body.startDate, existing.startDate, ''), endDate: pick(body.endDate, existing.endDate, ''),
+    photoUrl: pick(existing.photoUrl, null), photoIndex: pick(existing.photoIndex, 0),
+    pins: existing.pins || {},
+    live: existing.live || { see:{}, events:{}, games:{}, traditions:{} },
+  };
+  await FB.setDoc(cityRef(realId), clean(city));
+  return city;
+}
+const patchCity = async (id, body) => { await FB.updateDoc(cityRef(id), clean(body)); return getCity(id); };
+const delCity = id => FB.deleteDoc(cityRef(id));
+
+async function putPin(cid, pid, body){
+  const realPid = pid === 'new' ? genId('p') : pid;
+  let existing = {};
+  if (pid !== 'new'){
+    const s = await FB.getDoc(cityRef(cid));
+    if (!s.exists()) throw new Error('City not found');
+    existing = (s.data().pins || {})[realPid] || {};
+  }
+  const pin = { id: realPid, createdAt: existing.createdAt || nowISO() };
+  for (const k of Object.keys(PIN_DEFAULTS)) pin[k] = pick(body[k], existing[k], PIN_DEFAULTS[k]);
+  await FB.updateDoc(cityRef(cid), { ['pins.' + realPid]: clean(pin) });
+  return pin;
+}
+async function patchPin(cid, pid, body){
+  const updates = {};
+  for (const k of Object.keys(body)) if (body[k] !== undefined) updates[`pins.${pid}.${k}`] = body[k];
+  await FB.updateDoc(cityRef(cid), updates);
+  const s = await FB.getDoc(cityRef(cid));
+  return (s.data().pins || {})[pid];
+}
+const delPin = (cid, pid) => FB.updateDoc(cityRef(cid), { ['pins.' + pid]: FB.deleteField() });
+async function putLive(cid, kind, items, note){
+  const entry = { items: clean(items || []), at: nowISO(), note: note || '' };
+  await FB.updateDoc(cityRef(cid), { ['live.' + kind]: entry });
+  return entry;
+}
+const NO_AI = "AI suggestions aren't turned on in this version yet.";
+const refreshLive = async () => { throw new Error(NO_AI); };
+const aiJSON = async () => { throw new Error(NO_AI); };
+const cyclePhoto = async () => { throw new Error('City photos need a Google Places key, which this version does not use.'); };
+
+/* ---------- family spaces ---------- */
+async function sha256hex(s){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+const familyIdFor = code => sha256hex('jetset-johnsons:v1:' + code.trim().toLowerCase());
+async function familyExists(fid){ return (await FB.getDoc(metaRef(fid))).exists(); }
+async function createFamily(fid){
+  const batch = FB.writeBatch(fsdb);
+  batch.set(metaRef(fid), { createdAt: nowISO() });
+  for (const c of Object.values(SEED_CITIES)) batch.set(FB.doc(fsdb, 'families', fid, 'cities', c.id), clean(c));
+  await batch.commit();
+}
+
 
 /* =========================================================================
    Gate (family code + name)
    ========================================================================= */
+function friendlyError(e){
+  const code = (e && e.code) || '';
+  if (code.includes('permission-denied')) return 'The database refused the request. Make sure the Firestore rules from the README are published.';
+  if (code.includes('unavailable') || !navigator.onLine) return "Couldn't reach the database. Check your connection and try again.";
+  return 'Something went wrong: ' + ((e && e.message) || e);
+}
+function gateShell(inner){
+  document.getElementById('app').classList.add('hidden');
+  const g = document.getElementById('gate');
+  g.classList.remove('hidden');
+  g.innerHTML = `<div class="gate-card"><img class="gate-logo" src="icon-192.png" alt="">${inner}</div>`;
+}
 function renderGate(err){
-  document.getElementById('gate').innerHTML = `
-    <div class="gate-card">
-      <img class="gate-logo" src="icon-192.png" alt="">
+  gateShell(`
       <h1>Jetset Johnsons</h1>
-      <p>Enter your family code to get in.</p>
-      <div class="field"><label>Family code</label><input type="password" id="gc-code" placeholder="Shared code"></div>
+      <p>Enter your family code to get in. Not case-sensitive.</p>
+      <div class="field"><label>Family code</label><input type="password" id="gc-code" placeholder="At least 8 characters" autocomplete="off"></div>
       <div class="field"><label>Your name</label><input type="text" id="gc-name" placeholder="e.g. Jennifer"></div>
       <button class="btn block" id="gc-go">Let's go</button>
-      <div class="err">${err||''}</div>
-    </div>`;
-  document.getElementById('gc-code').value = STATE.familyCode;
+      <div class="err">${esc(err||'')}</div>
+      <p class="muted" style="margin:10px 0 0;">This code is the only lock on your family's trips, so make it long and hard to guess.</p>`);
   document.getElementById('gc-name').value = STATE.name;
-  document.getElementById('gc-go').onclick = async ()=>{
+  const go = document.getElementById('gc-go');
+  go.onclick = async ()=>{
     const code = document.getElementById('gc-code').value.trim();
     const name = document.getElementById('gc-name').value.trim();
     if (!code || !name){ renderGate('Enter both a code and your name.'); return; }
-    STATE.familyCode = code; STATE.name = name;
+    if (code.length < 8){ renderGate('Use a code that is at least 8 characters.'); return; }
+    go.disabled = true; go.textContent = 'Checking…';
     try{
-      await api('/config');
-      localStorage.setItem(LS.code, code); localStorage.setItem(LS.name, name);
-      boot();
-    }catch(e){ renderGate('Wrong code — try again.'); }
+      const fid = await familyIdFor(code);
+      if (await familyExists(fid)) finishLogin(fid, name);
+      else renderGateCreate(fid, name);
+    }catch(e){ renderGate(friendlyError(e)); }
   };
+}
+function renderGateCreate(fid, name){
+  gateShell(`
+      <h1>Start a new family space?</h1>
+      <p>Nobody has used that code yet. Create a new space with it? Everyone who enters this same code will share the same trips.</p>
+      <p class="muted">If you meant to join an existing space, go back and re-check the code.</p>
+      <button class="btn block" id="gc-create">Create family space</button>
+      <button class="btn ghost block" id="gc-back" style="margin-top:8px;">Back</button>
+      <div class="err" id="gc-err"></div>`);
+  document.getElementById('gc-back').onclick = ()=> renderGate();
+  const b = document.getElementById('gc-create');
+  b.onclick = async ()=>{
+    b.disabled = true; b.textContent = 'Creating…';
+    try{ await createFamily(fid); finishLogin(fid, name); }
+    catch(e){ b.disabled = false; b.textContent = 'Create family space'; document.getElementById('gc-err').textContent = friendlyError(e); }
+  };
+}
+function finishLogin(fid, name){
+  STATE.familyId = fid; STATE.name = name;
+  localStorage.setItem(LS.fid, fid); localStorage.setItem(LS.name, name);
+  startApp();
+}
+function lockApp(){
+  stopWatching();
+  localStorage.removeItem(LS.fid); STATE.familyId = ''; CUR_CITY = null;
+  history.replaceState(null, '', location.pathname);
+  renderGate();
 }
 
 /* =========================================================================
@@ -311,14 +445,17 @@ function skylineSVG(id, colorA, colorB){
 }
 
 async function renderHome(){
+  stopWatching(); CUR_CITY = null;
   const app = document.getElementById('app');
   app.innerHTML = `
     <div class="topbar"><div class="topbar-inner wrap" style="padding-left:0;padding-right:0;">
       <div class="wordmark">✈️ Jetset Johnsons</div>
+      <button class="iconbtn" id="lockBtn" title="Switch family">🔑</button>
       <button class="iconbtn" id="themeBtn">🌓</button>
     </div></div>
     <div class="wrap" id="homeBody"><div class="spinner"></div></div>`;
   document.getElementById('themeBtn').onclick = toggleTheme;
+  document.getElementById('lockBtn').onclick = ()=>{ if (confirm('Switch to a different family code on this device?')) lockApp(); };
 
   let cities;
   try { cities = await getCities(); } catch(e){ document.getElementById('homeBody').innerHTML = `<div class="empty-state">Couldn't load trips.<br>${e.message}</div>`; return; }
@@ -384,7 +521,8 @@ async function renderCityPage(id, tab){
   const app = document.getElementById('app');
   app.innerHTML = `<div class="spinner" style="margin-top:80px;"></div>`;
   let city;
-  try{ city = await getCity(id); } catch(e){ app.innerHTML = `<div class="wrap empty-state">Trip not found.<br><a href="#/">Go home</a></div>`; return; }
+  if (CUR_CITY && CUR_CITY.id === id && STATE.unsub) city = CUR_CITY;   // live copy is already current
+  else { try{ city = await getCity(id); } catch(e){ app.innerHTML = `<div class="wrap empty-state">Trip not found.<br><a href="#/">Go home</a></div>`; return; } }
   CUR_CITY = city;
 
   const pins = Object.values(city.pins||{});
@@ -401,8 +539,8 @@ async function renderCityPage(id, tab){
         <h1>${esc(city.name)}</h1>
         <div class="hero-pills">
           <span class="pill">${fmtRange(city)}</span>
-          <span class="pill">${pins.length} pin${pins.length===1?'':'s'}</span>
-          <span class="pill">${bookedCount} booked</span>
+          <span class="pill" id="pinPill">${pins.length} pin${pins.length===1?'':'s'}</span>
+          <span class="pill" id="bookedPill">${bookedCount} booked</span>
         </div>
       </div>
     </div>
@@ -420,21 +558,29 @@ async function renderCityPage(id, tab){
   bar.querySelectorAll('.tab-btn').forEach(b=> b.onclick = ()=>{ location.hash = `#/city/${id}/${b.dataset.tab}`; });
 
   renderTab(tab);
-  startPolling(id, tab);
+  startWatching(id);
 }
 
-function startPolling(id, tab){
-  if (STATE.pollTimer) clearInterval(STATE.pollTimer);
-  STATE.pollTimer = setInterval(async ()=>{
-    if (currentRoute().view !== 'city' || currentRoute().id !== id) { clearInterval(STATE.pollTimer); return; }
-    try{
-      const fresh = await getCity(id);
-      if (JSON.stringify(fresh) !== JSON.stringify(CUR_CITY)){
-        CUR_CITY = fresh;
-        renderTab(currentRoute().tab || 'plans');
-      }
-    }catch(e){ /* ignore transient errors */ }
-  }, 20000);
+function stopWatching(){ if (STATE.unsub){ STATE.unsub(); STATE.unsub = null; } }
+function updatePills(){
+  if (!CUR_CITY) return;
+  const pins = Object.values(CUR_CITY.pins || {});
+  const a = document.getElementById('pinPill'), b = document.getElementById('bookedPill');
+  if (a) a.textContent = `${pins.length} pin${pins.length===1?'':'s'}`;
+  if (b) b.textContent = `${pins.filter(p=>p.tickets).length} booked`;
+}
+// Live updates: when anyone in the family changes this trip, it shows up here right away.
+function startWatching(id){
+  stopWatching();
+  STATE.unsub = FB.onSnapshot(cityRef(id), snap => {
+    if (!snap.exists()) return;
+    const r = currentRoute();
+    if (r.view !== 'city' || r.id !== id) return;
+    const fresh = cityFromSnap(snap);
+    if (JSON.stringify(fresh) !== JSON.stringify(CUR_CITY)){
+      CUR_CITY = fresh; updatePills(); renderTab(r.tab || 'plans');
+    }
+  }, () => { /* transient listener errors are ignored; the next snapshot recovers */ });
 }
 
 function renderTab(tab){
@@ -487,9 +633,10 @@ function wirePinCardActions(container){
     if (!confirm('Remove this pin?')) return;
     await delPin(CUR_CITY.id, b.dataset.pid);
     delete CUR_CITY.pins[b.dataset.pid];
-    renderTab(currentRoute().tab);
+    updatePills(); renderTab(currentRoute().tab);
   });
-  container.querySelectorAll('[data-act="edit"]').forEach(b=> b.onclick = ()=> openPinSheet(CUR_CITY.pins[b.dataset.pid]));
+  container.querySelectorAll('[data-act="edit"]').forEach(b=> b.onclick = ()=>{ const p = CUR_CITY.pins[b.dataset.pid]; if (p.tickets) openPlansSheet(p); else openPinSheet(p); });
+  container.querySelectorAll('[data-act="ics"]').forEach(b=> b.onclick = ()=> downloadICS(CUR_CITY.pins[b.dataset.pid]));
   container.querySelectorAll('[data-act="reserved"]').forEach(b=> b.onclick = ()=> openPlansSheet(CUR_CITY.pins[b.dataset.pid]));
 }
 
@@ -516,7 +663,6 @@ function tabPlans(body){
     byDay[d].sort((a,b)=> (a.tTime||a.evTime||'').localeCompare(b.tTime||b.evTime||'')).forEach(p=>{
       const time = p.tTime || p.evTime;
       const tz = p.tTz ? ` ${p.tTz.split('/').pop().replace('_',' ')}` : '';
-      const icsHref = `/api/cities/${CUR_CITY.id}/pins/${p.id}/ics?c=${encodeURIComponent(STATE.familyCode)}`;
       const gcalHref = gcalLink(p);
       html += `
       <div class="card" data-pid="${p.id}">
@@ -530,16 +676,57 @@ function tabPlans(body){
         </div>
         <div class="btnrow">
           <a class="btn small ghost" href="${mapsDirUrl(p)}" target="_blank" rel="noopener">Directions</a>
-          <a class="btn small ghost" href="${icsHref}" target="_blank" rel="noopener">Add to calendar</a>
+          <button class="btn small ghost" data-act="ics" data-pid="${p.id}">Add to calendar</button>
           <a class="btn small ghost" href="${gcalHref}" target="_blank" rel="noopener">Google Cal</a>
           <button class="btn small ghost" data-act="edit" data-pid="${p.id}">Edit</button>
         </div>
       </div>`;
     });
   });
-  body.innerHTML = html + `<div class="muted" style="margin-top:14px;">Want these added to your phone's calendar? Ask Claude in chat to add your plans.</div>`;
+  body.innerHTML = html + `<div class="muted" style="margin-top:14px;">“Add to calendar” downloads a calendar file with your reminders. “Google Cal” opens Google Calendar instead.</div>`;
   wirePinCardActions(body);
 }
+/* ---------- Calendar file (.ics), built in the browser ---------- */
+function zonedToUTC(dateStr, timeStr, tz){
+  const [y, mo, d] = dateStr.split('-').map(Number);
+  const [h, mi] = (timeStr || '00:00').split(':').map(Number);
+  const target = Date.UTC(y, mo-1, d, h, mi);
+  let guess = target;
+  for (let i = 0; i < 3; i++){
+    const fmt = new Intl.DateTimeFormat('en-US', { timeZone: tz || 'UTC', hour12:false, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+    const parts = Object.fromEntries(fmt.formatToParts(new Date(guess)).map(p => [p.type, p.value]));
+    const seen = Date.UTC(+parts.year, +parts.month-1, +parts.day, parts.hour === '24' ? 0 : +parts.hour, +parts.minute);
+    const diff = target - seen;
+    if (diff === 0) break;
+    guess += diff;
+  }
+  return new Date(guess);
+}
+const icsDate = dt => dt.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+const icsEsc = s => String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+function buildICS(pin, city){
+  const dateStr = pin.tDate || pin.evDate;
+  if (!dateStr) return null;
+  const start = zonedToUTC(dateStr, pin.tTime || pin.evTime || '00:00', pin.tTz || 'America/Chicago');
+  const end = new Date(start.getTime() + 2*60*60*1000);
+  const mins = String(pin.remind || '1440,180').split(',').map(s => parseInt(s.trim(), 10)).filter(n => !Number.isNaN(n));
+  const lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Jetset Johnsons//EN','CALSCALE:GREGORIAN','BEGIN:VEVENT',
+    `UID:${pin.id}@jetsetjohnsons`, `DTSTAMP:${icsDate(new Date())}`, `DTSTART:${icsDate(start)}`, `DTEND:${icsDate(end)}`,
+    `SUMMARY:${icsEsc(pin.title)}`, `LOCATION:${icsEsc(pin.venue || city.name)}`, `DESCRIPTION:${icsEsc(pin.tNote || pin.note || '')}`];
+  mins.forEach(m => lines.push('BEGIN:VALARM','ACTION:DISPLAY',`DESCRIPTION:${icsEsc(pin.title)}`,`TRIGGER:-PT${m}M`,'END:VALARM'));
+  lines.push('END:VEVENT','END:VCALENDAR');
+  return lines.join('\r\n');
+}
+function downloadICS(pin){
+  const ics = buildICS(pin, CUR_CITY);
+  if (!ics){ toast('Add a date to this plan first'); return; }
+  const url = URL.createObjectURL(new Blob([ics], { type:'text/calendar;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = (pin.title || 'event').replace(/[^a-z0-9]+/gi, '-') + '.ics';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=> URL.revokeObjectURL(url), 4000);
+}
+
 function gcalLink(p){
   const date = p.tDate || p.evDate; const time = p.tTime || p.evTime || '00:00';
   if (!date) return '#';
@@ -553,7 +740,14 @@ function gcalLink(p){
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
-/* ---------- Generic finder (Eat / Play use this) ---------- */
+/* ---------- Free search links (stand-in for the AI finders in this version) ---------- */
+function mapsSearchUrl(q){ return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q); }
+function searchChips(items){
+  return `<div class="link-row">${items.map(([label, q]) =>
+    `<a class="link-chip" href="${mapsSearchUrl(q + ' in ' + CUR_CITY.name + ' ' + CUR_CITY.state)}" target="_blank" rel="noopener">${esc(label)}</a>`).join('')}</div>`;
+}
+
+/* ---------- Generic AI finder (only used when AI is available) ---------- */
 function finderSection(catKey, chips, opts){
   return `
     <div class="chip-row" id="${catKey}Chips">
@@ -564,7 +758,6 @@ function finderSection(catKey, chips, opts){
 }
 async function runFinder(catKey, vibe, city, promptFn, resultsEl){
   resultsEl.innerHTML = `<div class="spinner"></div>`;
-  if (!STATE.config.hasAI){ resultsEl.innerHTML = `<div class="muted">AI suggestions need ANTHROPIC_API_KEY set on the server.</div>`; return; }
   try{
     const { json } = await aiJSON(promptFn(vibe, city), 'Respond with ONLY JSON: {"items":[{"name":"","note":""}]}. 5-8 real, specific suggestions. No prose, no markdown fences.');
     const items = (json && json.items) || [];
@@ -601,40 +794,57 @@ function wireFinder(catKey, promptFn){
 /* ---------- Eat tab ---------- */
 function tabEat(body){
   const pins = Object.values(CUR_CITY.pins||{}).filter(p=>p.category==='eat');
+  const finder = STATE.config.hasAI
+    ? finderSection('eat', ['Must-try','Local classics','Date night','Brunch','Casual & cheap'])
+    : searchChips([['Must-try','best restaurants'],['Local classics','classic local restaurants'],['Date night','date night restaurants'],['Brunch','brunch'],['Casual & cheap','cheap eats']])
+      + `<div class="muted">These open Google Maps. Found somewhere good? Tap “Add a restaurant” to pin it for the whole family.</div>`;
   body.innerHTML = `
+    <button class="btn block" id="addPinBtn" style="margin-bottom:12px;">+ Add a restaurant</button>
     ${pins.length?`<div class="section-title">Pinned</div>${pins.map(p=>pinCard(p)).join('')}`:''}
     <div class="section-title">Find restaurants</div>
-    ${finderSection('eat', ['Must-try','Local classics','Date night','Brunch','Casual & cheap'])}
+    ${finder}
   `;
   wirePinCardActions(body);
-  wireFinder('eat', (vibe, city)=> `Suggest restaurants in ${city.name}, ${city.state} matching the vibe "${vibe}". Give real, specific restaurant names.`);
+  document.getElementById('addPinBtn').onclick = ()=> openPinSheet({category:'eat'});
+  if (STATE.config.hasAI) wireFinder('eat', (vibe, city)=> `Suggest restaurants in ${city.name}, ${city.state} matching the vibe "${vibe}". Give real, specific restaurant names.`);
 }
 
 /* ---------- Play tab ---------- */
 function tabPlay(body){
   const pins = Object.values(CUR_CITY.pins||{}).filter(p=>p.category==='play');
+  const finder = STATE.config.hasAI
+    ? finderSection('play', ['Family fun','Nightlife','Outdoors','Live shows','Shopping'])
+    : searchChips([['Family fun','family fun activities'],['Nightlife','nightlife'],['Outdoors','outdoor activities'],['Live shows','live shows and theater'],['Shopping','shopping']])
+      + `<div class="muted">These open Google Maps. Found something fun? Tap “Add a place” to pin it for the whole family.</div>`;
   body.innerHTML = `
+    <button class="btn block" id="addPinBtn" style="margin-bottom:12px;">+ Add a place</button>
     ${pins.length?`<div class="section-title">Pinned</div>${pins.map(p=>pinCard(p)).join('')}`:''}
     <div class="section-title">Find things to do</div>
-    ${finderSection('play', ['Family fun','Nightlife','Outdoors','Live shows','Shopping'])}
+    ${finder}
   `;
   wirePinCardActions(body);
-  wireFinder('play', (vibe, city)=> `Suggest entertainment/activities in ${city.name}, ${city.state} matching the vibe "${vibe}". Give real, specific place or venue names.`);
+  document.getElementById('addPinBtn').onclick = ()=> openPinSheet({category:'play'});
+  if (STATE.config.hasAI) wireFinder('play', (vibe, city)=> `Suggest entertainment/activities in ${city.name}, ${city.state} matching the vibe "${vibe}". Give real, specific place or venue names.`);
 }
 
 /* ---------- Explore tab ---------- */
 function tabExplore(body){
   const pins = Object.values(CUR_CITY.pins||{}).filter(p=>p.category==='see');
   const list = (CUR_CITY.live && CUR_CITY.live.see && CUR_CITY.live.see.items) || [];
+  const empty = STATE.config.hasAI
+    ? `<button class="btn" id="genIdeas">Generate ideas</button>`
+    : searchChips([['Top things to do','top things to do'],['Attractions','tourist attractions'],['Parks','parks'],['Museums','museums']]);
   body.innerHTML = `
+    <button class="btn block" id="addPinBtn" style="margin-bottom:12px;">+ Add a place</button>
     ${pins.length?`<div class="section-title">Pinned</div>${pins.map(p=>pinCard(p)).join('')}`:''}
     <div class="section-title">Popular things to do</div>
-    <div id="exploreList">${list.length ? list.map((it,i)=>exploreCard(it,i)).join('') : `<button class="btn" id="genIdeas">Generate ideas</button>`}</div>
+    <div id="exploreList">${list.length ? list.map((it,i)=>exploreCard(it,i)).join('') : empty}</div>
   `;
   wirePinCardActions(body);
-  if (document.getElementById('genIdeas')) document.getElementById('genIdeas').onclick = async ()=>{
+  document.getElementById('addPinBtn').onclick = ()=> openPinSheet({category:'see'});
+  const gi = document.getElementById('genIdeas');
+  if (gi) gi.onclick = async ()=>{
     const el = document.getElementById('exploreList'); el.innerHTML = `<div class="spinner"></div>`;
-    if (!STATE.config.hasAI){ el.innerHTML = `<div class="muted">AI suggestions need ANTHROPIC_API_KEY set on the server.</div>`; return; }
     try{
       const { json } = await aiJSON(
         `List 12 popular things to do in ${CUR_CITY.name}, ${CUR_CITY.state} for visitors. Mix museums, landmarks, parks, neighborhoods, markets, and experiences.`,
@@ -680,24 +890,28 @@ function tabEvents(body){
   const live = CUR_CITY.live || {};
   const ev = (live.events && live.events.items) || [];
   const trad = (live.traditions && live.traditions.items) || [];
+  const ai = STATE.config.hasAI;
   const q = encodeURIComponent(`${CUR_CITY.name} ${CUR_CITY.state}`);
   body.innerHTML = `
+    <button class="btn block" id="addEventBtn" style="margin-bottom:12px;">+ Add an event we're going to</button>
     <div class="link-row">
       <a class="link-chip" href="https://www.google.com/search?q=events+in+${q}" target="_blank" rel="noopener">All events</a>
       <a class="link-chip" href="https://www.google.com/search?q=concerts+in+${q}" target="_blank" rel="noopener">Concerts</a>
       <a class="link-chip" href="https://www.google.com/search?q=festivals+in+${q}" target="_blank" rel="noopener">Festivals</a>
       <a class="link-chip" href="https://www.ticketmaster.com/search?q=${q}" target="_blank" rel="noopener">Ticketmaster</a>
     </div>
-    <div class="section-title">Confirmed for your dates</div>
-    <div id="evList">${ev.length ? ev.map(eventCard).join('') : `<div class="muted">Nothing confirmed yet.</div>`}</div>
-    <button class="btn ghost block" id="loadEvents" style="margin-top:8px;">${STATE.config.hasAI ? 'Search for events' : 'Search needs server AI key'}</button>
-
-    <div class="section-title">Yearly traditions around then</div>
-    <div id="tradList">${trad.length ? trad.map(t=>`<div class="card"><h3>${esc(t.name)}</h3><div class="sub">${esc(t.blurb||'')}</div></div>`).join('') : `<button class="btn ghost block" id="loadTrad">${STATE.config.hasAI?'Find traditions':'Needs server AI key'}</button>`}</div>
-    <div class="muted" style="margin-top:6px;">Traditions repeat yearly — always confirm exact dates before you go.</div>
+    ${(ev.length || ai) ? `
+      <div class="section-title">Confirmed for your dates</div>
+      <div id="evList">${ev.length ? ev.map(eventCard).join('') : `<div class="muted">Nothing confirmed yet.</div>`}</div>
+      ${ai ? `<button class="btn ghost block" id="loadEvents" style="margin-top:8px;">Search for events</button>` : ''}` : ''}
+    ${(trad.length || ai) ? `
+      <div class="section-title">Yearly traditions around then</div>
+      <div id="tradList">${trad.length ? trad.map(t=>`<div class="card"><h3>${esc(t.name)}</h3><div class="sub">${esc(t.blurb||'')}</div></div>`).join('') : `<button class="btn ghost block" id="loadTrad">Find traditions</button>`}</div>
+      <div class="muted" style="margin-top:6px;">Traditions repeat yearly — always confirm exact dates before you go.</div>` : ''}
   `;
-  document.getElementById('loadEvents').onclick = async ()=>{
-    if (!STATE.config.hasAI) return;
+  document.getElementById('addEventBtn').onclick = ()=> openPlansSheet({category:'events', title:'', venue:'', evDate:CUR_CITY.startDate, evTime:''});
+  const le = document.getElementById('loadEvents');
+  if (le) le.onclick = async ()=>{
     document.getElementById('evList').innerHTML = `<div class="spinner"></div>`;
     try{ const r = await refreshLive(CUR_CITY.id, 'events'); CUR_CITY.live.events = r; renderTab('events'); }
     catch(e){ toast(e.message); renderTab('events'); }
@@ -706,7 +920,8 @@ function tabEvents(body){
     const item = ev[b.dataset.evIdx];
     openPlansSheet({category:'events', title:item.name, venue:item.venue, evDate:item.date, evTime:item.time, url:item.url});
   });
-  if (document.getElementById('loadTrad')) document.getElementById('loadTrad').onclick = async ()=>{
+  const lt = document.getElementById('loadTrad');
+  if (lt) lt.onclick = async ()=>{
     document.getElementById('tradList').innerHTML = `<div class="spinner"></div>`;
     try{
       const { json } = await aiJSON(
@@ -805,14 +1020,14 @@ function tabSports(body){
           <a class="btn small ghost" href="https://www.google.com/search?q=${encodeURIComponent(t.name+' tickets')}" target="_blank" rel="noopener">Tickets</a>
           <button class="btn small" data-pin-game data-league="${t.league}" data-team="${esc(t.name)}">Pin a game</button>
         </div>
-      </div>`).join('') : `<div class="muted">No hardcoded teams for ${esc(CUR_CITY.name)} yet — ask Claude in chat to add this metro.</div>`}
+      </div>`).join('') : `<div class="muted">No teams listed for ${esc(CUR_CITY.name)} yet.</div>`}
 
-    <div class="section-title">Confirmed games</div>
+    ${(games.length || STATE.config.hasAI) ? `<div class="section-title">Confirmed games</div>
     <div id="gameList">${games.length ? games.map(gameCard).join('') : `<div class="muted">Nothing confirmed yet.</div>`}</div>
-    <button class="btn ghost block" id="loadGames" style="margin-top:8px;">${STATE.config.hasAI ? 'Search for games' : 'Search needs server AI key'}</button>
+    ${STATE.config.hasAI ? `<button class="btn ghost block" id="loadGames" style="margin-top:8px;">Search for games</button>` : ''}` : ''}
   `;
-  document.getElementById('loadGames').onclick = async ()=>{
-    if (!STATE.config.hasAI) return;
+  const lg = document.getElementById('loadGames');
+  if (lg) lg.onclick = async ()=>{
     document.getElementById('gameList').innerHTML = `<div class="spinner"></div>`;
     try{ const r = await refreshLive(CUR_CITY.id, 'games'); CUR_CITY.live.games = r; renderTab('sports'); }
     catch(e){ toast(e.message); renderTab('sports'); }
@@ -898,22 +1113,29 @@ function tabMap(body){
    Pin sheet (generic edit) & Plans sheet (booking details)
    ========================================================================= */
 function openPinSheet(pin){
+  const isNew = !pin.id;
+  const cat = CAT[pin.category] || CAT.see;
   openSheet(`
-    <h2>Edit pin</h2>
-    <div class="field"><label>Title</label><input type="text" id="p-title" value="${escAttr(pin.title)}"></div>
+    <h2>${isNew ? 'Add to ' + cat.label : 'Edit pin'}</h2>
+    <div class="field"><label>Name</label><input type="text" id="p-title" value="${escAttr(pin.title)}"></div>
     <div class="field"><label>Note</label><textarea id="p-note">${esc(pin.note||'')}</textarea></div>
     <div class="field"><label>Link (optional)</label><input type="url" id="p-url" value="${escAttr(pin.url||'')}"></div>
     <div class="field"><label>Status</label>
-      <select id="p-status"><option value="want" ${pin.status==='want'?'selected':''}>Want</option><option value="loved" ${pin.status==='loved'?'selected':''}>Loved</option></select>
+      <select id="p-status"><option value="want" ${pin.status!=='loved'?'selected':''}>Want</option><option value="loved" ${pin.status==='loved'?'selected':''}>Loved</option></select>
     </div>
     <div class="sheet-actions"><button class="btn ghost" id="p-cancel">Cancel</button><button class="btn" id="p-save">Save</button></div>
   `);
   document.getElementById('p-cancel').onclick = closeSheet;
   document.getElementById('p-save').onclick = async ()=>{
     const body = { title:document.getElementById('p-title').value.trim(), note:document.getElementById('p-note').value.trim(), url:document.getElementById('p-url').value.trim(), status:document.getElementById('p-status').value };
-    const updated = await patchPin(CUR_CITY.id, pin.id, body);
-    CUR_CITY.pins[pin.id] = updated;
-    closeSheet(); renderTab(currentRoute().tab);
+    if (!body.title){ toast('Give it a name first'); return; }
+    if (isNew){
+      const saved = await putPin(CUR_CITY.id, 'new', Object.assign({ category: pin.category || 'see', byName: STATE.name }, body));
+      CUR_CITY.pins[saved.id] = saved; toast('Pinned!');
+    } else {
+      CUR_CITY.pins[pin.id] = await patchPin(CUR_CITY.id, pin.id, body);
+    }
+    updatePills(); closeSheet(); renderTab(currentRoute().tab);
   };
 }
 
@@ -939,8 +1161,15 @@ function openPlansSheet(pin){
       </div>
     </div>
     <div class="sheet-actions"><button class="btn ghost" id="pl-cancel">Cancel</button><button class="btn" id="pl-save">Save</button></div>
+    ${isNew ? '' : `<button class="btn ghost block" id="pl-delete" style="margin-top:10px;">Remove this plan</button>`}
   `);
   document.getElementById('pl-cancel').onclick = closeSheet;
+  const del = document.getElementById('pl-delete');
+  if (del) del.onclick = async ()=>{
+    if (!confirm('Remove this plan and its pin?')) return;
+    await delPin(CUR_CITY.id, pin.id); delete CUR_CITY.pins[pin.id];
+    updatePills(); closeSheet(); renderTab(currentRoute().tab);
+  };
   document.getElementById('pl-save').onclick = async ()=>{
     const remind = [...document.querySelectorAll('.pl-remind:checked')].map(c=>c.value).join(',') || '1440,180';
     const body = {
@@ -953,7 +1182,7 @@ function openPlansSheet(pin){
     const pid = pin.id || 'new';
     const saved = await putPin(CUR_CITY.id, pid, body);
     CUR_CITY.pins[saved.id] = saved;
-    closeSheet(); toast('Saved to Plans'); renderTab(currentRoute().tab);
+    updatePills(); closeSheet(); toast('Saved to Plans'); renderTab(currentRoute().tab);
   };
 }
 function guessTz(){ try{ return Intl.DateTimeFormat().resolvedOptions().timeZone; }catch{ return 'America/Chicago'; } }
@@ -968,18 +1197,24 @@ function escAttr(s){ return esc(s).replace(/"/g,'&quot;'); }
    Render dispatcher & boot
    ========================================================================= */
 function render(){
+  if (!STATE.familyId){ renderGate(); return; }
   const r = currentRoute();
   if (r.view === 'city') renderCityPage(r.id, r.tab);
   else renderHome();
 }
 
-async function boot(){
+function startApp(){
   applyTheme();
   document.getElementById('gate').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
-  try{ STATE.config = await api('/config'); }catch(e){ STATE.config = {}; }
   render();
 }
+
+// Surface failed saves (e.g. Firestore rules not published) instead of failing silently.
+window.addEventListener('unhandledrejection', e => {
+  const r = e.reason; if (!r) return;
+  toast(friendlyError(r));
+});
 
 if ('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
@@ -987,12 +1222,8 @@ if ('serviceWorker' in navigator){
 
 (function init(){
   applyTheme();
-  if (STATE.familyCode && STATE.name){
-    api('/config').then(cfg=>{ STATE.config = cfg; document.getElementById('gate').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); render(); })
-      .catch(()=> renderGate());
-  } else {
-    renderGate();
-  }
+  if (STATE.familyId && STATE.name) startApp();
+  else renderGate();
 })();
 </script>
 </body>

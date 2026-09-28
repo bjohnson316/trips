@@ -1,0 +1,8 @@
+{
+  "name": "jetset-firebase-bundle",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": { "build": "esbuild entry.js --bundle --minify --format=iife --global-name=FB --target=es2018 --outfile=firebase-bundle.js" },
+  "dependencies": { "firebase": "latest" },
+  "devDependencies": { "esbuild": "latest" }
+}

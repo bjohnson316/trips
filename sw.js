@@ -1,15 +1,16 @@
 // Jetset Johnsons — service worker
 // Only caches the static shell (HTML/CSS/icons/manifest) so the app opens
-// instantly and still loads offline. /api/* is always fetched live — trip
-// data, pins, and AI results should never come from a stale cache.
+// instantly and still loads offline. Trip data itself is handled by Firestore's
+// own on-device cache, not by this file.
 
-const CACHE_NAME = 'jetset-shell-v1';
+const CACHE_NAME = 'jetset-shell-v2';
 const SHELL_ASSETS = [
   './',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png',
   './apple-touch-icon.png',
+  './firebase-bundle.js',
 ];
 
 self.addEventListener('install', (event) => {

@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Every family's data lives under /families/{familyId}/...
+    //
+    // familyId is a 64-character SHA-256 hash of the family code (computed in
+    // the browser), so the path itself acts as the key. Nothing below allows
+    // listing /families, so you can only reach a family space by already
+    // knowing its code. Anyone who has the code can read and write.
+
+    match /families/{familyId}/meta/{docId} {
+      allow read, write: if familyId.size() == 64;
+    }
+
+    match /families/{familyId}/cities/{cityId} {
+      allow read, write: if familyId.size() == 64;
+    }
+
+    // Everything else is locked.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
