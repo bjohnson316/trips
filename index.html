@@ -1,1230 +1,773 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Jetset Johnsons</title>
+<meta name="theme-color" content="#6366F1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jetset">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" href="icon-192.png">
-<meta name="theme-color" content="#6366f1">
+<link rel="icon" type="image/png" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --eat:#e5484d; --play:#8b5cf6; --see:#14b8a6; --events:#f59e0b; --games:#3b82f6; --map:#6366f1; --plans:#ec4899;
-  --radius:18px; --radius-sm:12px;
-  --bg:#f7f7fb; --bg2:#ffffff; --card:#ffffff; --ink:#16161d; --ink2:#5b5b68; --line:rgba(20,20,30,.08);
-  --glass:rgba(255,255,255,.72); --shadow:0 8px 30px rgba(20,20,40,.08);
+  --bg:#F3F4F8;--surface:#FFFFFF;--surface2:#F7F8FB;--ink:#12131A;--muted:#636779;--line:#E3E5EC;--accent:#4F46E5;--accent-ink:#FFFFFF;
+  --glass:rgba(255,255,255,.78);--shadow:0 1px 2px rgba(18,19,26,.06),0 8px 24px rgba(18,19,26,.06);
+  --eat:#F2545B;--play:#A855F7;--see:#0EA5A4;--events:#F59E0B;--games:#3B82F6;--map:#4F46E5;
+  --brand:linear-gradient(135deg,#06B6D4 0%,#6366F1 55%,#D946EF 100%);
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 }
-:root[data-theme="dark"]{
-  --bg:#0f0f16; --bg2:#16161f; --card:#1b1b26; --ink:#f2f2f6; --ink2:#9c9ca8; --line:rgba(255,255,255,.09);
-  --glass:rgba(20,20,30,.6); --shadow:0 8px 30px rgba(0,0,0,.4);
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#0f0f16; --bg2:#16161f; --card:#1b1b26; --ink:#f2f2f6; --ink2:#9c9ca8; --line:rgba(255,255,255,.09);
-    --glass:rgba(20,20,30,.6); --shadow:0 8px 30px rgba(0,0,0,.4);
-  }
-}
-*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-html{scroll-padding-top:env(safe-area-inset-top,0px);}
-html,body{height:100%;}
-body{
-  margin:0; background:var(--bg); color:var(--ink);
-  font-family:'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
-  overscroll-behavior-y:none;
-}
-button{font-family:inherit;}
-a{color:inherit;}
-.wrap{max-width:640px; margin:0 auto; padding:0 16px;}
-.hidden{display:none !important;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0D0E14;--surface:#171923;--surface2:#1D2030;--ink:#F1F2F7;--muted:#9A9FB2;--line:#272A39;--accent:#818CF8;--accent-ink:#0D0E14;
+  --glass:rgba(23,25,35,.78);--shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+  --eat:#FB7185;--play:#C084FC;--see:#2DD4BF;--events:#FBBF24;--games:#60A5FA;--map:#818CF8;}}
+:root[data-theme="dark"]{--bg:#0D0E14;--surface:#171923;--surface2:#1D2030;--ink:#F1F2F7;--muted:#9A9FB2;--line:#272A39;--accent:#818CF8;--accent-ink:#0D0E14;
+  --glass:rgba(23,25,35,.78);--shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+  --eat:#FB7185;--play:#C084FC;--see:#2DD4BF;--events:#FBBF24;--games:#60A5FA;--map:#818CF8;}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+a{color:inherit;-webkit-tap-highlight-color:transparent}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px 120px}
+.banner{margin:12px 0 0;padding:10px 14px;border-radius:14px;background:var(--surface);box-shadow:var(--shadow);color:var(--muted);font-size:14px}
 
-/* ---------- Gate screen ---------- */
-#gate{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;}
-.gate-card{background:var(--card); border-radius:24px; padding:32px 24px; box-shadow:var(--shadow); width:100%; max-width:360px; text-align:center;}
-.gate-logo{width:72px; height:72px; border-radius:20px; margin:0 auto 16px; display:block;}
-.gate-card h1{font-size:24px; margin:0 0 4px; font-weight:800;}
-.gate-card p{color:var(--ink2); margin:0 0 20px; font-size:14px;}
-.field{text-align:left; margin-bottom:14px;}
-.field label{font-size:12px; font-weight:600; color:var(--ink2); display:block; margin-bottom:6px;}
-input[type=text],input[type=password],input[type=date],input[type=time],input[type=url],select,textarea{
-  width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--line); background:var(--bg2); color:var(--ink);
-  font-size:15px; font-family:inherit;
-}
-textarea{resize:vertical; min-height:60px;}
-.btn{
-  display:inline-flex; align-items:center; justify-content:center; gap:6px;
-  border:none; border-radius:14px; padding:12px 18px; font-weight:700; font-size:14px; cursor:pointer;
-  background:var(--ink); color:var(--bg);
-}
-.btn.block{width:100%;}
-.btn.ghost{background:transparent; color:var(--ink); border:1px solid var(--line);}
-.btn.small{padding:8px 12px; font-size:13px; border-radius:10px;}
-.btn:active{transform:scale(.97);}
-.err{color:var(--eat); font-size:13px; margin-top:8px; min-height:16px;}
+/* Brand */
+.brand{display:flex;align-items:center;gap:12px;padding:22px 0 6px}
+.logo{width:48px;height:48px;border-radius:14px;flex:none;box-shadow:0 6px 18px rgba(99,102,241,.35)}
+.wordmark{font-size:28px;font-weight:800;letter-spacing:-.035em;line-height:1}
+.tag{color:var(--muted);font-size:14px;margin-top:3px}
+.h-label{font-size:15px;font-weight:600;color:var(--muted);margin:26px 2px 10px}
 
-/* ---------- Top bar ---------- */
-.topbar{position:sticky; top:0; z-index:20; backdrop-filter:blur(16px); background:var(--glass); border-bottom:1px solid var(--line);}
-.topbar-inner{display:flex; align-items:center; gap:10px; padding:12px 16px; padding-top:calc(12px + env(safe-area-inset-top,0px));}
-.topbar .wordmark{font-weight:800; font-size:18px; flex:1;}
-.iconbtn{width:36px; height:36px; border-radius:12px; border:1px solid var(--line); background:var(--bg2); display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer;}
-.back{font-size:20px;}
+/* City tiles */
+.tiles{display:grid;gap:12px}
+.tile{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;min-height:150px;border:0;border-radius:24px;padding:18px;color:#fff;text-align:left;box-shadow:var(--shadow);isolation:isolate}
+.tile::before,.hero::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(circle at 85% 15%,rgba(255,255,255,.35),transparent 45%),radial-gradient(circle at 10% 110%,rgba(0,0,0,.25),transparent 55%)}
+.tile::after,.hero::after{content:"";position:absolute;right:-40px;top:-40px;width:200px;height:200px;z-index:-1;border-radius:50%;border:1.5px dashed rgba(255,255,255,.35)}
+.tile .nm{font-size:34px;font-weight:800;letter-spacing:-.035em;line-height:1;overflow-wrap:anywhere}
+.tile .row2{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;font-size:14px;font-weight:500}
+.pill{background:rgba(255,255,255,.22);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:5px 11px;border-radius:999px;font-weight:600;font-size:13px;white-space:nowrap}
+.tile.past{min-height:84px;opacity:.82}.tile.past .nm{font-size:24px}
+.empty{padding:36px 4px;color:var(--muted)}
+.empty strong{display:block;color:var(--ink);font-size:20px;margin-bottom:4px}
+.fab{position:fixed;right:16px;bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--brand);color:#fff;border:0;border-radius:999px;padding:15px 22px;font-weight:700;font-size:16px;box-shadow:0 10px 26px rgba(99,102,241,.4);display:flex;gap:8px;align-items:center;z-index:6}
 
-/* ---------- Home ---------- */
-.section-title{font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--ink2); margin:22px 0 10px;}
-.city-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
-.city-tile{position:relative; border-radius:var(--radius); overflow:hidden; aspect-ratio:3/4; cursor:pointer; box-shadow:var(--shadow);}
-.city-tile .cover{position:absolute; inset:0;}
-.city-tile .fade{position:absolute; inset:0; background:linear-gradient(180deg, transparent 40%, rgba(0,0,0,.75) 100%);}
-.city-tile .meta{position:absolute; left:0; right:0; bottom:0; padding:12px; color:#fff;}
-.city-tile .meta .name{font-weight:800; font-size:17px; line-height:1.1;}
-.city-tile .meta .dates{font-size:12px; opacity:.85; margin-top:2px;}
-.city-tile .badge{position:absolute; top:10px; left:10px; background:rgba(255,255,255,.92); color:#111; font-size:11px; font-weight:700; padding:4px 8px; border-radius:20px;}
-.add-city-tile{display:flex; align-items:center; justify-content:center; flex-direction:column; gap:6px; border:2px dashed var(--line); border-radius:var(--radius); aspect-ratio:3/4; color:var(--ink2); cursor:pointer; font-weight:700; font-size:13px;}
-.add-city-tile .plus{font-size:28px;}
-.empty-state{text-align:center; padding:40px 20px; color:var(--ink2);}
+/* City hero */
+.hero{position:relative;overflow:hidden;isolation:isolate;margin:12px 0 0;border-radius:28px;padding:14px 18px 22px;color:#fff;box-shadow:var(--shadow)}
+.hero .bar{display:flex;justify-content:space-between}
+.hbtn{background:rgba(255,255,255,.2);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:0;color:#fff;border-radius:999px;padding:7px 14px;font-weight:600;font-size:14px}
+.city-name{font-size:clamp(44px,14vw,76px);font-weight:800;letter-spacing:-.05em;line-height:.92;margin:34px 0 14px;overflow-wrap:anywhere}
+.hero .meta{display:flex;flex-wrap:wrap;gap:8px}
+.hero .pill{border:0;color:#fff;font-size:14px;padding:7px 13px}
 
-/* ---------- City hero ---------- */
-.hero{position:relative; height:220px; border-radius:0 0 26px 26px; overflow:hidden; margin-bottom:6px;}
-.hero .cover{position:absolute; inset:0;}
-.hero .fade{position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,.15) 0%, rgba(0,0,0,.7) 100%);}
-.hero-content{position:absolute; left:16px; right:16px; bottom:16px; color:#fff;}
-.hero-content h1{margin:0; font-size:26px; font-weight:800;}
-.hero-pills{display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;}
-.pill{background:rgba(255,255,255,.22); backdrop-filter:blur(6px); font-size:12px; font-weight:700; padding:5px 10px; border-radius:20px;}
-.hero-photo-btn{position:absolute; top:calc(12px + env(safe-area-inset-top,0px)); right:12px;}
+/* Sections */
+.sec{margin-top:26px}
+.sec-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:10px}
+.sec h2{font-size:22px;font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.15}
+.sub{color:var(--muted);font-size:14px;margin:3px 0 0}
+.cards{display:grid;gap:10px;list-style:none;margin:0;padding:0}
+.card{background:var(--surface);border-radius:18px;padding:14px 14px 12px;box-shadow:var(--shadow);display:grid;grid-template-columns:40px 1fr;gap:12px}
+.ico{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 15%,transparent);color:var(--c)}
+.card .t{font-weight:700;font-size:17px;line-height:1.25;letter-spacing:-.01em}
+.card .d{color:var(--muted);font-size:14px;margin-top:2px}
+.card .who{font-size:12.5px;color:var(--muted);margin-top:6px}
+.card .when{font-size:13px;font-weight:700;color:var(--c);margin-bottom:2px}
+.acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13.5px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.chip svg.i{width:15px;height:15px}
+.chip.go{background:var(--c,var(--accent));border-color:transparent;color:#fff}
+.chip.on{background:color-mix(in srgb,var(--c) 16%,transparent);border-color:transparent;color:var(--c)}
+.chip.quiet{background:none;border-color:transparent;color:var(--muted)}
+.btn{background:var(--ink);color:var(--bg);border:0;border-radius:14px;padding:13px 18px;font-weight:700;font-size:15.5px;display:inline-flex;align-items:center;gap:8px}
+.btn.soft{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.btn[disabled]{opacity:.55}
+.add{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:10px;padding:14px;border:1.5px dashed color-mix(in srgb,var(--c) 45%,var(--line));border-radius:18px;background:none;color:var(--c);font-weight:700;font-size:15.5px}
+.note{color:var(--muted);font-size:14px;padding:6px 2px}
+.links{display:flex;flex-wrap:wrap;gap:8px}
+.seg{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 12px;padding:2px 16px}
+.seg::-webkit-scrollbar{display:none}
+.seg button{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:14px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--c,var(--ink));border-color:transparent;color:#fff}
+.team{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.badge{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.badge.in{background:color-mix(in srgb,var(--games) 16%,transparent);color:var(--games)}
+.badge.post{background:color-mix(in srgb,var(--events) 18%,transparent);color:var(--events)}
+.badge.off{background:var(--surface2);color:var(--muted)}
+.league{font-size:13px;font-weight:700;color:var(--muted);margin:16px 2px 8px}
 
-/* ---------- Tabs ---------- */
-.tabbar{position:fixed; left:0; right:0; bottom:0; z-index:30; display:flex; justify-content:center; padding-bottom:calc(10px + env(safe-area-inset-bottom,0px)); pointer-events:none;}
-.tabbar-inner{pointer-events:auto; display:flex; gap:2px; background:var(--glass); backdrop-filter:blur(20px); border:1px solid var(--line); border-radius:20px; padding:6px; box-shadow:var(--shadow); max-width:96vw; overflow-x:auto;}
-.tab-btn{display:flex; flex-direction:column; align-items:center; gap:2px; border:none; background:transparent; padding:8px 10px; border-radius:14px; font-size:10px; font-weight:700; color:var(--ink2); cursor:pointer; white-space:nowrap;}
-.tab-btn .ic{font-size:17px;}
-.tab-btn.active{background:var(--bg2); color:var(--ink);}
-.tab-content{padding:14px 16px 110px;}
+/* Photos */
+.tile.photo{min-height:190px}
+.tile.photo::after,.hero.photo::after{display:none}
+.tile .cred{position:absolute;top:10px;right:14px;font-size:10.5px;opacity:.75}
+.hero.photo{min-height:300px;display:flex;flex-direction:column}
+.hero.photo .city-name{margin-top:auto;text-shadow:0 2px 18px rgba(0,0,0,.35)}
+.hero .credit{position:absolute;right:14px;bottom:8px;font-size:10.5px;color:#fff;opacity:.8;text-decoration:none}
+.hero .bar .grp{display:flex;gap:6px}
+.card.ph-card{display:block;padding:0;overflow:hidden}
+.ph-wrap{position:relative;aspect-ratio:16/9;background:color-mix(in srgb,var(--c) 14%,var(--surface2))}
+.ph-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+.ph-cred{position:absolute;right:8px;bottom:6px;font-size:10px;color:#fff;background:rgba(0,0,0,.4);padding:1px 6px;border-radius:6px}
+.ph-rate{position:absolute;left:10px;top:10px;background:rgba(255,255,255,.92);color:#12131A;font-size:12.5px;font-weight:700;padding:3px 9px;border-radius:999px}
+.ph-body{padding:12px 14px 13px}
 
-/* ---------- Cards ---------- */
-.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:14px; margin-bottom:10px; box-shadow:var(--shadow);}
-.card-row{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
-.card h3{margin:0; font-size:16px; font-weight:800;}
-.card .sub{color:var(--ink2); font-size:13px; margin-top:2px;}
-.chipline{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;}
-.chip{font-size:11px; font-weight:700; padding:4px 9px; border-radius:20px; background:var(--bg); border:1px solid var(--line); color:var(--ink2);}
-.chip.status-loved{background:color-mix(in srgb, var(--eat) 15%, transparent); color:var(--eat); border-color:transparent;}
-.chip.cat{color:#fff; border:none;}
-.btnrow{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
-.day-heading{font-size:13px; font-weight:800; color:var(--ink2); text-transform:uppercase; letter-spacing:.03em; margin:18px 0 8px;}
-.day-heading:first-child{margin-top:0;}
+/* Map */
+.mapbox{background:var(--surface);border-radius:24px;box-shadow:var(--shadow);overflow:hidden}
+.mapbox svg{display:block;width:100%;height:auto;touch-action:manipulation}
+.mapbox .grid{stroke:var(--line);stroke-width:1}
+.mapbox .lbl{font-size:11px;font-weight:700;fill:var(--ink);paint-order:stroke;stroke:var(--surface);stroke-width:3.5px;stroke-linejoin:round}
+.mapbox .scale{font-size:10px;fill:var(--muted);font-weight:600}
+.pinmark{cursor:pointer}
+.pinmark path{transition:transform .15s}
+.sel-card{margin-top:10px}
 
-/* ---------- Finder chips ---------- */
-.chip-row{display:flex; gap:8px; overflow-x:auto; padding:2px 0 4px; margin-bottom:6px;}
-.vibe-chip{flex:0 0 auto; padding:8px 14px; border-radius:20px; border:1px solid var(--line); background:var(--bg2); font-size:13px; font-weight:700; cursor:pointer; color:var(--ink);}
-.vibe-chip.active{background:var(--ink); color:var(--bg); border-color:var(--ink);}
+/* Bottom nav */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:8;padding:0 10px env(safe-area-inset-bottom,0px);background:var(--glass);backdrop-filter:blur(18px) saturate(1.6);-webkit-backdrop-filter:blur(18px) saturate(1.6);border-top:1px solid var(--line)}
+.nav-in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr)}
+.nav button{border:0;background:none;padding:9px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font-size:11px;font-weight:600}
+.nav button svg.i{width:22px;height:22px}
+.nav button .ib{padding:4px 12px;border-radius:999px;display:grid;place-items:center}
+.nav button[aria-selected="true"]{color:var(--c)}
+.nav button[aria-selected="true"] .ib{background:color-mix(in srgb,var(--c) 16%,transparent)}
 
-/* ---------- Illustrated covers ---------- */
-.cover-ill{width:56px; height:56px; border-radius:14px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:26px; color:#fff;}
-
-/* ---------- Bottom sheet ---------- */
-.sheet-overlay{position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:50; display:flex; align-items:flex-end;}
-.sheet{background:var(--bg2); width:100%; max-height:88vh; overflow-y:auto; border-radius:24px 24px 0 0; padding:18px 18px calc(24px + env(safe-area-inset-bottom,0px)); box-shadow:0 -10px 40px rgba(0,0,0,.25);}
-.sheet-handle{width:40px; height:4px; background:var(--line); border-radius:4px; margin:0 auto 14px;}
-.sheet h2{margin:0 0 14px; font-size:19px; font-weight:800;}
-.field-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
-.sheet-actions{display:flex; gap:10px; margin-top:16px;}
-.sheet-actions .btn{flex:1;}
-
-/* ---------- Loading / misc ---------- */
-.spinner{width:22px; height:22px; border-radius:50%; border:3px solid var(--line); border-top-color:var(--ink); animation:spin .8s linear infinite; margin:20px auto;}
-@keyframes spin{to{transform:rotate(360deg);}}
-.muted{color:var(--ink2); font-size:13px;}
-.link-row{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:12px;}
-.link-chip{flex:0 0 auto; padding:9px 14px; border-radius:14px; background:var(--card); border:1px solid var(--line); font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px;}
-.toast{position:fixed; left:50%; bottom:calc(90px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:10px 18px; border-radius:20px; font-size:13px; font-weight:700; z-index:80; box-shadow:var(--shadow);}
+/* Sheet */
+.scrim{position:fixed;inset:0;background:rgba(8,9,14,.5);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:640px;border-radius:26px 26px 0 0;padding:10px 18px calc(22px + env(safe-area-inset-bottom,0px));max-height:90%;overflow:auto;animation:up .24s cubic-bezier(.2,.8,.2,1)}
+.sheet .grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 14px}
+@keyframes up{from{transform:translateY(40px);opacity:.3}}
+@media (prefers-reduced-motion:reduce){.sheet{animation:none}}
+.sheet h3{margin:0 0 14px;font-size:22px;font-weight:800;letter-spacing:-.02em}
+.field{display:block;margin-bottom:14px}
+.field span{display:block;font-size:13.5px;font-weight:600;color:var(--muted);margin-bottom:5px}
+.field input,.field textarea{width:100%;padding:13px;border:1px solid var(--line);border-radius:14px;background:var(--surface2);font-size:16px}
+.field textarea{min-height:70px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.foot{display:flex;gap:10px;justify-content:space-between;align-items:center;margin-top:6px}
+.danger{background:none;border:0;color:var(--eat);font-weight:700;padding:12px 0}
+.toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;font-weight:600;z-index:30;white-space:nowrap}
 </style>
 </head>
 <body>
-
-<div id="gate"></div>
-<div id="app" class="hidden"></div>
-<div id="sheetHost"></div>
-<div id="toastHost"></div>
-
+<div id="app" class="wrap"></div>
+<div id="navslot"></div>
+<div id="modal"></div>
 <script src="firebase-bundle.js"></script>
 <script>
-/* =========================================================================
-   State & storage
-   ========================================================================= */
-const LS = { fid:'jj_fid', name:'jj_name', theme:'jj_theme' };
-let STATE = {
-  familyId: localStorage.getItem(LS.fid) || '',
-  name: localStorage.getItem(LS.name) || '',
-  // No server in this version, so no AI suggestions or Google Places photos.
-  config: { hasAI:false, hasMaps:false },
-  unsub: null,
-};
-
-const CAT = {
-  eat:{color:'var(--eat)', label:'Eat', icon:'🍽️'},
-  play:{color:'var(--play)', label:'Play', icon:'🎉'},
-  see:{color:'var(--see)', label:'See', icon:'🧭'},
-  events:{color:'var(--events)', label:'Events', icon:'🎫'},
-  games:{color:'var(--games)', label:'Games', icon:'🏟️'},
-};
-const COVER_ICON = { museum:'🏛️', landmark:'🗽', park:'🌳', water:'🌊', neighborhood:'🏘️', market:'🛍️', experience:'✨' };
-const GRADIENTS = [
-  'linear-gradient(160deg,#6366f1,#ec4899)', 'linear-gradient(160deg,#14b8a6,#3b82f6)',
-  'linear-gradient(160deg,#f59e0b,#e5484d)', 'linear-gradient(160deg,#8b5cf6,#14b8a6)',
-  'linear-gradient(160deg,#3b82f6,#8b5cf6)', 'linear-gradient(160deg,#ec4899,#f59e0b)',
+/* ---------- Static reference: major-league teams by metro ---------- */
+const METROS=[
+{n:"Atlanta",a:["atlanta"],NFL:["Atlanta Falcons"],NBA:["Atlanta Hawks"],MLB:["Atlanta Braves"]},
+{n:"Baltimore",a:["baltimore"],NFL:["Baltimore Ravens"],MLB:["Baltimore Orioles"]},
+{n:"Boston",a:["boston","cambridge","foxborough","foxboro"],NFL:["New England Patriots"],NBA:["Boston Celtics"],NHL:["Boston Bruins"],MLB:["Boston Red Sox"]},
+{n:"Buffalo",a:["buffalo","niagara falls"],NFL:["Buffalo Bills"],NHL:["Buffalo Sabres"]},
+{n:"Calgary",a:["calgary"],NHL:["Calgary Flames"]},
+{n:"Charlotte",a:["charlotte"],NFL:["Carolina Panthers"],NBA:["Charlotte Hornets"]},
+{n:"Raleigh",a:["raleigh","durham","chapel hill"],NHL:["Carolina Hurricanes"]},
+{n:"Chicago",a:["chicago"],NFL:["Chicago Bears"],NBA:["Chicago Bulls"],NHL:["Chicago Blackhawks"],MLB:["Chicago Cubs","Chicago White Sox"]},
+{n:"Cincinnati",a:["cincinnati"],NFL:["Cincinnati Bengals"],MLB:["Cincinnati Reds"]},
+{n:"Cleveland",a:["cleveland"],NFL:["Cleveland Browns"],NBA:["Cleveland Cavaliers"],MLB:["Cleveland Guardians"]},
+{n:"Columbus",a:["columbus"],NHL:["Columbus Blue Jackets"]},
+{n:"Dallas",a:["dallas","fort worth","ft worth","arlington","dfw","dallas fort worth","frisco","irving","plano","grapevine","roanoke"],NFL:["Dallas Cowboys"],NBA:["Dallas Mavericks"],NHL:["Dallas Stars"],MLB:["Texas Rangers"]},
+{n:"Denver",a:["denver"],NFL:["Denver Broncos"],NBA:["Denver Nuggets"],NHL:["Colorado Avalanche"],MLB:["Colorado Rockies"]},
+{n:"Detroit",a:["detroit"],NFL:["Detroit Lions"],NBA:["Detroit Pistons"],NHL:["Detroit Red Wings"],MLB:["Detroit Tigers"]},
+{n:"Edmonton",a:["edmonton"],NHL:["Edmonton Oilers"]},
+{n:"Green Bay",a:["green bay"],NFL:["Green Bay Packers"]},
+{n:"Houston",a:["houston"],NFL:["Houston Texans"],NBA:["Houston Rockets"],MLB:["Houston Astros"]},
+{n:"Indianapolis",a:["indianapolis","indy"],NFL:["Indianapolis Colts"],NBA:["Indiana Pacers"]},
+{n:"Jacksonville",a:["jacksonville"],NFL:["Jacksonville Jaguars"]},
+{n:"Kansas City",a:["kansas city","kc"],NFL:["Kansas City Chiefs"],MLB:["Kansas City Royals"]},
+{n:"Las Vegas",a:["las vegas","vegas","henderson"],NFL:["Las Vegas Raiders"],NHL:["Vegas Golden Knights"]},
+{n:"Los Angeles",a:["los angeles","la","anaheim","inglewood","hollywood","santa monica","pasadena","long beach","beverly hills"],NFL:["Los Angeles Rams","Los Angeles Chargers"],NBA:["Los Angeles Lakers","LA Clippers"],NHL:["Los Angeles Kings","Anaheim Ducks"],MLB:["Los Angeles Dodgers","Los Angeles Angels"]},
+{n:"Memphis",a:["memphis"],NBA:["Memphis Grizzlies"]},
+{n:"Miami",a:["miami","miami beach","fort lauderdale","ft lauderdale","sunrise"],NFL:["Miami Dolphins"],NBA:["Miami Heat"],NHL:["Florida Panthers"],MLB:["Miami Marlins"]},
+{n:"Milwaukee",a:["milwaukee"],NBA:["Milwaukee Bucks"],MLB:["Milwaukee Brewers"]},
+{n:"Minneapolis",a:["minneapolis","st paul","twin cities","bloomington"],NFL:["Minnesota Vikings"],NBA:["Minnesota Timberwolves"],NHL:["Minnesota Wild"],MLB:["Minnesota Twins"]},
+{n:"Montreal",a:["montreal"],NHL:["Montreal Canadiens"]},
+{n:"Nashville",a:["nashville"],NFL:["Tennessee Titans"],NHL:["Nashville Predators"]},
+{n:"New Orleans",a:["new orleans","nola"],NFL:["New Orleans Saints"],NBA:["New Orleans Pelicans"]},
+{n:"New York",a:["new york","new york city","nyc","ny","manhattan","brooklyn","queens","bronx","newark","jersey city","hoboken"],NFL:["New York Giants","New York Jets"],NBA:["New York Knicks","Brooklyn Nets"],NHL:["New York Rangers","New York Islanders","New Jersey Devils"],MLB:["New York Yankees","New York Mets"]},
+{n:"Oklahoma City",a:["oklahoma city","okc"],NBA:["Oklahoma City Thunder"]},
+{n:"Orlando",a:["orlando","kissimmee"],NBA:["Orlando Magic"]},
+{n:"Ottawa",a:["ottawa"],NHL:["Ottawa Senators"]},
+{n:"Philadelphia",a:["philadelphia","philly"],NFL:["Philadelphia Eagles"],NBA:["Philadelphia 76ers"],NHL:["Philadelphia Flyers"],MLB:["Philadelphia Phillies"]},
+{n:"Phoenix",a:["phoenix","scottsdale","tempe","mesa","glendale"],NFL:["Arizona Cardinals"],NBA:["Phoenix Suns"],MLB:["Arizona Diamondbacks"]},
+{n:"Pittsburgh",a:["pittsburgh"],NFL:["Pittsburgh Steelers"],NHL:["Pittsburgh Penguins"],MLB:["Pittsburgh Pirates"]},
+{n:"Portland",a:["portland"],NBA:["Portland Trail Blazers"]},
+{n:"Sacramento",a:["sacramento","west sacramento"],NBA:["Sacramento Kings"],MLB:["Athletics"]},
+{n:"Salt Lake City",a:["salt lake city","salt lake","slc","park city"],NBA:["Utah Jazz"],NHL:["Utah Mammoth"]},
+{n:"San Antonio",a:["san antonio"],NBA:["San Antonio Spurs"]},
+{n:"San Diego",a:["san diego"],MLB:["San Diego Padres"]},
+{n:"San Francisco",a:["san francisco","sf","oakland","san jose","bay area","santa clara"],NFL:["San Francisco 49ers"],NBA:["Golden State Warriors"],NHL:["San Jose Sharks"],MLB:["San Francisco Giants"]},
+{n:"Seattle",a:["seattle"],NFL:["Seattle Seahawks"],NHL:["Seattle Kraken"],MLB:["Seattle Mariners"]},
+{n:"St. Louis",a:["st louis"],NHL:["St. Louis Blues"],MLB:["St. Louis Cardinals"]},
+{n:"Tampa",a:["tampa","st petersburg","clearwater","tampa bay"],NFL:["Tampa Bay Buccaneers"],NHL:["Tampa Bay Lightning"],MLB:["Tampa Bay Rays"]},
+{n:"Toronto",a:["toronto"],NBA:["Toronto Raptors"],NHL:["Toronto Maple Leafs"],MLB:["Toronto Blue Jays"]},
+{n:"Vancouver",a:["vancouver"],NHL:["Vancouver Canucks"]},
+{n:"Washington",a:["washington","washington dc","dc","arlington va"],NFL:["Washington Commanders"],NBA:["Washington Wizards"],NHL:["Washington Capitals"],MLB:["Washington Nationals"]},
+{n:"Winnipeg",a:["winnipeg"],NHL:["Winnipeg Jets"]}
 ];
 
-function hashStr(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31 + s.charCodeAt(i))|0; } return Math.abs(h); }
-function gradientFor(id){ return GRADIENTS[hashStr(id)%GRADIENTS.length]; }
-function toast(msg){
-  const el = document.createElement('div'); el.className='toast'; el.textContent=msg;
-  document.getElementById('toastHost').appendChild(el);
-  setTimeout(()=>el.remove(), 2200);
+const LEAGUES=["NFL","NBA","NHL","MLB"];
+const SEASONS={NFL:{reg:[904,107],post:[108,212]},NBA:{reg:[1020,412],post:[413,620]},NHL:{reg:[1005,416],post:[417,620]},MLB:{reg:[325,930],post:[1001,1105]}};
+
+const IC={
+ eat:'<path d="M7 3v7a2 2 0 0 0 2 2v9M5 3v5M9 3v5M18 21V3c-2.2 1-3.5 3.6-3.5 7.5 0 2.5 1.3 3.5 3.5 3.5"/>',
+ play:'<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
+ see:'<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>',
+ events:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18M9.5 15l1.7 1.5 3.3-3"/>',
+ games:'<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6c3.5 3.5 3.5 9.3 0 12.8M18.4 5.6c-3.5 3.5-3.5 9.3 0 12.8M3 12h18"/>',
+ map:'<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+ dir:'<path d="M3 11 21 3l-8 18-2-8z"/>',
+ link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>',
+ pin:'<path d="M12 17v5M8 3h8l-1 6 3 3v2H6v-2l3-3z"/>',
+ heart:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
+ spark:'<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/>',
+ ticket:'<path d="M3 9a2 2 0 0 0 0 6v3h18v-3a2 2 0 0 0 0-6V6H3z"/><path d="M14 6v12" stroke-dasharray="2 2"/>',
+ back:'<path d="m15 18-6-6 6-6"/>',
+ menu:'<path d="M6 3h12v18H6z"/><path d="M9 8h6M9 12h6M9 16h4"/>',
+ image:'<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="m21 16-5-5-8 8"/>'
+};
+const ico=(k,cls="i")=>`<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${IC[k]}</svg>`;
+const LOGO=`<svg class="logo" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#06B6D4"/><stop offset=".55" stop-color="#6366F1"/><stop offset="1" stop-color="#D946EF"/></linearGradient></defs><rect width="48" height="48" rx="14" fill="url(#lg)"/><path d="M7 36c7-1 15-5 18-8" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="2.2" stroke-dasharray="0.1 4.2" stroke-linecap="round"/><path d="M24 12h9v15a8.5 8.5 0 0 1-15.9 4.2" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+const TABS=[
+ {k:"eat",label:"Eat",c:"var(--eat)"},
+ {k:"play",label:"Play",c:"var(--play)"},
+ {k:"see",label:"Explore",c:"var(--see)"},
+ {k:"events",label:"Events",c:"var(--events)"},
+ {k:"games",label:"Sports",c:"var(--games)"},
+ {k:"map",label:"Map",c:"var(--map)"}
+];
+const catColor=k=>(TABS.find(t=>t.k===k)||TABS[0]).c;
+const catName={eat:"Restaurant",play:"Entertainment",see:"Sight",events:"Event",games:"Game"};
+const GRADS=[["#06B6D4","#6366F1"],["#F43F5E","#F59E0B"],["#10B981","#0EA5E9"],["#8B5CF6","#EC4899"],["#F97316","#DB2777"],["#0EA5A4","#4F46E5"],["#2563EB","#9333EA"],["#E11D48","#7C3AED"]];
+const grad=n=>{let h=7;for(const ch of String(n).toLowerCase())h=(h*31+ch.charCodeAt(0))>>>0;const [a,b]=GRADS[h%GRADS.length];return `linear-gradient(140deg,${a},${b})`};
+
+const EAT_STYLES=[
+ {k:"best",l:"Must-try",q:"the most acclaimed, must-try restaurants a visitor should not miss"},
+ {k:"local",l:"Local classics",q:"iconic local institutions and dishes the city is known for"},
+ {k:"date",l:"Date night",q:"special-occasion and date-night restaurants with great atmosphere"},
+ {k:"brunch",l:"Brunch",q:"the best brunch and breakfast spots"},
+ {k:"casual",l:"Casual & cheap",q:"casual, affordable favorites locals love"}
+];
+
+/* ---------- State ---------- */
+const S={ai:false,places:false,needsCode:false,ready:false,err:"",cities:[],cityId:null,tab:"eat",pins:[],live:{},subs:[],busy:{},names:{},eatStyle:"best",mapFilter:"all",mapSel:null};
+
+/* ---------- Helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const d8=s=>s?new Date(s+"T12:00:00"):null;
+const fmt=(s,o={month:"short",day:"numeric"})=>s?d8(s).toLocaleDateString(undefined,o):"";
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const g=q=>"https://www.google.com/search?q="+encodeURIComponent(q);
+const mapsQ=(name,city)=>"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(name+", "+city);
+const dirs=(name,city)=>"https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(name+", "+city);
+const photoUrl=()=>"";   // city/place photos need a server-side Google key; not used in this version
+function cityBg(c,w){
+  const p=c.photo,shade="linear-gradient(to top,rgba(0,0,0,.62),rgba(0,0,0,.08) 55%,rgba(0,0,0,.25))";
+  if(!p)return grad(c.name);
+  const u=p.type==="unsplash"?p.url+(p.url.includes("?")?"&":"?")+"w="+w:photoUrl(p.placeId,w,p.i||0);
+  return `${shade},url('${u}') center/cover no-repeat,${grad(c.name)}`;
 }
+const menuLink=(it,c)=>it.menuUrl||g((it.name||it.title)+" "+c.name+" menu");
+function thumb(it){
+  if(!it.placeId||it.hasPhoto===false)return "";
+  return `<div class="ph-wrap"><img src="${esc(photoUrl(it.placeId,800))}" alt="" loading="lazy" onerror="this.parentNode.remove()">${typeof it.rating==="number"?`<span class="ph-rate">★ ${it.rating.toFixed(1)}</span>`:""}${it.photoCredit?`<span class="ph-cred">Photo: ${esc(it.photoCredit)}</span>`:""}</div>`;
+}
+function wrapCard(it,cat,inner){
+  const t=thumb(it);
+  return t?`<li class="card ph-card" style="--c:${catColor(cat)}">${t}<div class="ph-body">${inner}</div></li>`
+          :`<li class="card" style="--c:${catColor(cat)}"><div class="ico">${ico(cat)}</div><div>${inner}</div></li>`;
+}
+function extraLinks(it,cat,c){
+  if(cat==="eat")return `<a class="chip" href="${esc(menuLink(it,c))}" target="_blank" rel="noopener">${ico("menu")}Menu</a>`;
+  if(it.website)return `<a class="chip" href="${esc(it.website)}" target="_blank" rel="noopener">${ico("link")}Website</a>`;
+  return "";
+}
+const hasGeo=p=>typeof p.lat==="number"&&typeof p.lng==="number";
+const city=()=>S.cities.find(c=>c.id===S.cityId);
+const num=v=>typeof v==="number"&&isFinite(v)?v:null;
+function monthsLabel(c){const s=c.start||today(),e=c.end||s;const a=fmt(s,{month:"long",year:"numeric"}),b=fmt(e,{month:"long",year:"numeric"});return a===b?a:a+" "+b}
+function toast(msg){document.querySelectorAll(".toast").forEach(t=>t.remove());const t=document.createElement("div");t.className="toast";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2200)}
+function metroFor(name){
+  const n=String(name).toLowerCase().split(",")[0].replace(/\./g,"").replace(/\bsaint\b/g,"st").replace(/\s+/g," ").trim();
+  return METROS.find(m=>m.a.includes(n)||m.n.toLowerCase().replace(/\./g,"")===n);
+}
+function inWin(md,[s,e]){return s<=e?md>=s&&md<=e:md>=s||md<=e}
+function seasonStatus(lg,start,end){
+  let d=d8(start||today()),last=d8(end||start||today()),i=0,reg=false,post=false;
+  while(d<=last&&i<60){const md=(d.getMonth()+1)*100+d.getDate();if(inWin(md,SEASONS[lg].reg))reg=true;else if(inWin(md,SEASONS[lg].post))post=true;d.setDate(d.getDate()+1);i++}
+  return reg?"in":post?"post":"off";
+}
+function isPast(c){const t=today();return c.start&&(c.end||c.start)<t}
+function tripLabel(c){
+  if(!c.start)return {top:"Add dates",sub:""};
+  const t=today(),range=fmt(c.start)+(c.end&&c.end!==c.start?" – "+fmt(c.end):"");
+  if(isPast(c))return {top:range+", "+d8(c.start).getFullYear(),sub:"Been there"};
+  if(c.start<=t)return {top:range,sub:"Happening now"};
+  const days=Math.round((d8(c.start)-d8(t))/864e5);
+  return {top:range,sub:days===1?"Tomorrow":days+" days to go"};
+}
+function inRange(date,c){if(!date)return true;if(c.start&&date<c.start)return false;if(c.end&&date>c.end)return false;return true}
+function km(a,b,c,d){const r=Math.PI/180,x=(d-b)*r*Math.cos((a+c)/2*r),y=(c-a)*r;return Math.sqrt(x*x+y*y)*6371}
 
-/* =========================================================================
-   Firebase / Firestore data layer
-   Data lives at families/{familyId}/cities/{cityId}. familyId is the SHA-256
-   hash of the family code, so the code itself never leaves the device.
-   ========================================================================= */
-const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyBFvs8iiz_xhTODPcNOohTEJUEpXEs4v_Y",
-  authDomain: "jetset-d5503.firebaseapp.com",
-  projectId: "jetset-d5503",
-  storageBucket: "jetset-d5503.firebasestorage.app",
-  messagingSenderId: "471799585142",
-  appId: "1:471799585142:web:833468d2ad00514276c257"
+/* ---------- Data layer (Firebase / Firestore) ----------
+   Same function names and data shapes the screens already use; only the storage changed.
+   Everything lives at families/{familyId}/cities/{cityId}. familyId is the SHA-256 hash of
+   the family code, so the code itself never leaves this device. Each city document holds its
+   pins ("pins") and cached lists ("live"), and updates arrive live from Firestore. */
+const FIREBASE_CONFIG={
+  apiKey:"AIzaSyBFvs8iiz_xhTODPcNOohTEJUEpXEs4v_Y",
+  authDomain:"jetset-d5503.firebaseapp.com",
+  projectId:"jetset-d5503",
+  storageBucket:"jetset-d5503.firebasestorage.app",
+  messagingSenderId:"471799585142",
+  appId:"1:471799585142:web:833468d2ad00514276c257"
 };
-
-const PIN_DEFAULTS = {
-  category:'see', title:'', note:'', url:'', when:'', status:'want', byName:'',
-  lat:null, lng:null, placeId:null, rating:null, website:null, photoRef:null, menuUrl:null,
-  tickets:false, tDate:'', tTime:'', tTz:'', tNote:'', remind:'1440,180',
-  venue:'', evDate:'', evTime:''
-};
-
-// Starter trips, written into a brand-new family space the first time a code is used.
-const SEED_CITIES = {"mujyc2ysi4iris":{"id":"mujyc2ysi4iris","name":"Boston","state":"MA","startDate":"2026-10-29","endDate":"2026-11-02","photoUrl":null,"photoIndex":0,"pins":{"mujyc31bostonia":{"id":"mujyc31bostonia","category":"eat","title":"Bostonia","note":"Clam Chowder","url":"","when":"","status":"want","byName":"","lat":null,"lng":null,"placeId":null,"rating":null,"website":null,"photoRef":null,"menuUrl":null,"tickets":false,"tDate":"","tTime":"","tTz":"","tNote":"","remind":"1440,180","venue":"","evDate":"","evTime":"","createdAt":"2026-09-01T00:00:00.000Z"}},"live":{"see":{"items":[{"name":"Freedom Trail","type":"landmark","blurb":"A 2.5-mile red-brick trail linking 16 historic sites through downtown Boston."},{"name":"Faneuil Hall Marketplace","type":"market","blurb":"Historic market hall with food stalls, shops, and street performers."},{"name":"Boston Public Garden","type":"park","blurb":"America's first public botanical garden — swan boats and the Make Way for Ducklings statues."},{"name":"Museum of Fine Arts","type":"museum","blurb":"One of the largest art museums in the US, with an encyclopedic collection."},{"name":"New England Aquarium","type":"water","blurb":"Harborside aquarium centered on a four-story ocean tank."},{"name":"Fenway Park","type":"landmark","blurb":"Home of the Red Sox and the oldest ballpark still in use in MLB."},{"name":"Boston Common","type":"park","blurb":"The oldest city park in the US, anchoring the start of the Freedom Trail."},{"name":"USS Constitution","type":"landmark","blurb":"The world's oldest commissioned warship still afloat, docked in Charlestown."},{"name":"Paul Revere House","type":"landmark","blurb":"Boston's oldest surviving structure, home of the famous midnight rider."},{"name":"Boston Tea Party Ships & Museum","type":"experience","blurb":"Interactive waterfront museum with a reenactment and replica ships."},{"name":"Harvard Square","type":"neighborhood","blurb":"Bookshops, cafes, and Harvard Yard just across the river in Cambridge."},{"name":"Quincy Market","type":"market","blurb":"Long domed market hall packed with New England food vendors."}],"at":"2026-09-01T00:00:00.000Z","note":""},"events":{"items":[],"at":null,"note":""},"games":{"items":[],"at":null,"note":""},"traditions":{"items":[],"at":null,"note":""}}},"mujyq2mcb4gyk1":{"id":"mujyq2mcb4gyk1","name":"Salem","state":"MA","startDate":"2026-10-31","endDate":"2026-10-31","photoUrl":null,"photoIndex":0,"pins":{},"live":{"see":{"items":[],"at":null,"note":""},"events":{"items":[],"at":null,"note":""},"games":{"items":[],"at":null,"note":""},"traditions":{"items":[],"at":null,"note":""}}}};
-
-const fbApp = FB.initializeApp(FIREBASE_CONFIG);
+const fbApp=FB.initializeApp(FIREBASE_CONFIG);
 let fsdb;
-try {
-  // Offline-friendly: reads are cached on the device and writes queue until you're back online.
-  fsdb = FB.initializeFirestore(fbApp, { localCache: FB.persistentLocalCache({ tabManager: FB.persistentMultipleTabManager() }) });
-} catch (e) {
-  fsdb = FB.initializeFirestore(fbApp, {});
-}
+try{fsdb=FB.initializeFirestore(fbApp,{localCache:FB.persistentLocalCache({tabManager:FB.persistentMultipleTabManager()})})}   // offline-friendly
+catch{fsdb=FB.initializeFirestore(fbApp,{})}
 
-const nowISO = () => new Date().toISOString();
-const clean = o => JSON.parse(JSON.stringify(o));          // Firestore rejects undefined values
-const pick = (...vals) => vals.find(v => v !== undefined);
-function genId(prefix){
-  const rnd = Array.from(crypto.getRandomValues(new Uint8Array(4))).map(b => b.toString(16).padStart(2,'0')).join('');
-  return prefix + Date.now().toString(36) + rnd;
-}
-const cityCol = () => FB.collection(fsdb, 'families', STATE.familyId, 'cities');
-const cityRef = id => FB.doc(fsdb, 'families', STATE.familyId, 'cities', id);
-const metaRef = fid => FB.doc(fsdb, 'families', fid, 'meta', 'info');
-function cityFromSnap(snap){
-  const d = snap.data();
-  d.id = snap.id; d.pins = d.pins || {}; d.live = d.live || {};
-  return d;
-}
+const LS={get:k=>{try{return localStorage.getItem(k)||""}catch{return ""}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}}};
+const API={fid:LS.get("jj_fid"),name:LS.get("jj_name")};
+API.req=async()=>{throw Object.assign(new Error("off"),{code:"off"})};   // server-only features (AI lists, photos) are off in this version
+const clean=o=>JSON.parse(JSON.stringify(o));   // Firestore rejects undefined values
+const cityCol=()=>FB.collection(fsdb,"families",API.fid,"cities");
+const cityRef=id=>FB.doc(fsdb,"families",API.fid,"cities",id);
+const metaRef=fid=>FB.doc(fsdb,"families",fid,"meta","info");
+async function sha256hex(s){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,"0")).join("")}
+const familyIdFor=code=>sha256hex("jetset-johnsons:v2:"+code.trim().toLowerCase());
+const errText=e=>{const c=String(e&&e.code||"");
+  if(c.includes("permission-denied"))return "The database refused the request. Publish the Firestore rules from the README, then reload.";
+  return "Can't reach the database. Check your connection."};
+function writeFailed(e){S.err=errText(e);render()}
+// Writes apply on this device instantly (and to everyone else when online). If we're offline they
+// keep queueing, so don't hold the screen waiting on the network for more than a moment.
+function commit(p){p.catch(writeFailed);return Promise.race([p,new Promise(r=>setTimeout(r,1500))])}
+const aiJSON=async()=>{throw Object.assign(new Error("off"),{code:"off"})};
 
-const getCities = async () => (await FB.getDocs(cityCol())).docs.map(cityFromSnap);
-async function getCity(id){
-  const s = await FB.getDoc(cityRef(id));
-  if (!s.exists()) throw new Error('City not found');
-  return cityFromSnap(s);
+const SEED_SEE=[{"name":"Freedom Trail","kind":"","why":"Two and a half miles of red-brick path past 16 historic sites.","area":"Downtown","typical_timing":"","lat":42.3555,"lng":-71.064},{"name":"Faneuil Hall Marketplace","kind":"","why":"Historic market hall with food stalls, shops and street performers.","area":"Downtown","typical_timing":"","lat":42.36,"lng":-71.0568},{"name":"Boston Public Garden","kind":"","why":"America's first public botanical garden. Swan boats, duckling statues.","area":"Back Bay","typical_timing":"","lat":42.3541,"lng":-71.0699},{"name":"Museum of Fine Arts","kind":"","why":"One of the country's largest art museums, from Egypt to modern.","area":"Fenway","typical_timing":"","lat":42.3394,"lng":-71.094},{"name":"New England Aquarium","kind":"","why":"Harborside aquarium built around a four-story ocean tank.","area":"Waterfront","typical_timing":"","lat":42.359,"lng":-71.0496},{"name":"Fenway Park","kind":"","why":"Home of the Red Sox and the oldest ballpark in the majors.","area":"Fenway","typical_timing":"","lat":42.3467,"lng":-71.0972},{"name":"Boston Common","kind":"","why":"The country's oldest public park and the Freedom Trail's start.","area":"Downtown","typical_timing":"","lat":42.355,"lng":-71.0656},{"name":"USS Constitution","kind":"","why":"The world's oldest commissioned warship still afloat.","area":"Charlestown","typical_timing":"","lat":42.3726,"lng":-71.0566},{"name":"Paul Revere House","kind":"","why":"Boston's oldest surviving building, home of the midnight rider.","area":"North End","typical_timing":"","lat":42.3637,"lng":-71.0537},{"name":"Boston Tea Party Ships & Museum","kind":"","why":"Hands-on waterfront museum with replica ships and a reenactment.","area":"Seaport","typical_timing":"","lat":42.3522,"lng":-71.0508},{"name":"Harvard Square","kind":"","why":"Bookshops, cafes and Harvard Yard, just across the river.","area":"Cambridge","typical_timing":"","lat":42.3736,"lng":-71.119},{"name":"Quincy Market","kind":"","why":"Long domed hall packed with New England food vendors.","area":"Downtown","typical_timing":"","lat":42.3598,"lng":-71.0549}];
+function seedCities(){
+  const at=Date.now();
+  return [
+   {id:"mujyc2ysi4iris",name:"Boston",start:"2026-10-29",end:"2026-11-02",by:"",at,
+    pins:{mujyc31bostonia:{id:"mujyc31bostonia",cat:"eat",title:"Bostonia",note:"Clam Chowder",url:"",when:"",status:"want",byName:"",at}},
+    live:{see:{items:SEED_SEE,at}}},
+   {id:"mujyq2mcb4gyk1",name:"Salem MA",start:"2026-10-31",end:"2026-10-31",by:"",at,pins:{},live:{}}
+  ];
 }
-async function putCity(id, body){
-  const realId = id === 'new' ? genId('c') : id;
-  let existing = {};
-  if (id !== 'new'){ const s = await FB.getDoc(cityRef(realId)); if (s.exists()) existing = s.data(); }
-  const city = {
-    id: realId,
-    name: pick(body.name, existing.name, ''), state: pick(body.state, existing.state, ''),
-    startDate: pick(body.startDate, existing.startDate, ''), endDate: pick(body.endDate, existing.endDate, ''),
-    photoUrl: pick(existing.photoUrl, null), photoIndex: pick(existing.photoIndex, 0),
-    pins: existing.pins || {},
-    live: existing.live || { see:{}, events:{}, games:{}, traditions:{} },
-  };
-  await FB.setDoc(cityRef(realId), clean(city));
-  return city;
-}
-const patchCity = async (id, body) => { await FB.updateDoc(cityRef(id), clean(body)); return getCity(id); };
-const delCity = id => FB.deleteDoc(cityRef(id));
-
-async function putPin(cid, pid, body){
-  const realPid = pid === 'new' ? genId('p') : pid;
-  let existing = {};
-  if (pid !== 'new'){
-    const s = await FB.getDoc(cityRef(cid));
-    if (!s.exists()) throw new Error('City not found');
-    existing = (s.data().pins || {})[realPid] || {};
-  }
-  const pin = { id: realPid, createdAt: existing.createdAt || nowISO() };
-  for (const k of Object.keys(PIN_DEFAULTS)) pin[k] = pick(body[k], existing[k], PIN_DEFAULTS[k]);
-  await FB.updateDoc(cityRef(cid), { ['pins.' + realPid]: clean(pin) });
-  return pin;
-}
-async function patchPin(cid, pid, body){
-  const updates = {};
-  for (const k of Object.keys(body)) if (body[k] !== undefined) updates[`pins.${pid}.${k}`] = body[k];
-  await FB.updateDoc(cityRef(cid), updates);
-  const s = await FB.getDoc(cityRef(cid));
-  return (s.data().pins || {})[pid];
-}
-const delPin = (cid, pid) => FB.updateDoc(cityRef(cid), { ['pins.' + pid]: FB.deleteField() });
-async function putLive(cid, kind, items, note){
-  const entry = { items: clean(items || []), at: nowISO(), note: note || '' };
-  await FB.updateDoc(cityRef(cid), { ['live.' + kind]: entry });
-  return entry;
-}
-const NO_AI = "AI suggestions aren't turned on in this version yet.";
-const refreshLive = async () => { throw new Error(NO_AI); };
-const aiJSON = async () => { throw new Error(NO_AI); };
-const cyclePhoto = async () => { throw new Error('City photos need a Google Places key, which this version does not use.'); };
-
-/* ---------- family spaces ---------- */
-async function sha256hex(s){
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-}
-const familyIdFor = code => sha256hex('jetset-johnsons:v1:' + code.trim().toLowerCase());
-async function familyExists(fid){ return (await FB.getDoc(metaRef(fid))).exists(); }
+async function familyExists(fid){return (await FB.getDoc(metaRef(fid))).exists()}
 async function createFamily(fid){
-  const batch = FB.writeBatch(fsdb);
-  batch.set(metaRef(fid), { createdAt: nowISO() });
-  for (const c of Object.values(SEED_CITIES)) batch.set(FB.doc(fsdb, 'families', fid, 'cities', c.id), clean(c));
-  await batch.commit();
+  const b=FB.writeBatch(fsdb);
+  b.set(metaRef(fid),{createdAt:Date.now(),schema:2});
+  for(const c of seedCities()){const {id,...rest}=c;b.set(FB.doc(fsdb,"families",fid,"cities",id),clean(rest))}
+  await b.commit();
 }
 
-
-/* =========================================================================
-   Gate (family code + name)
-   ========================================================================= */
-function friendlyError(e){
-  const code = (e && e.code) || '';
-  if (code.includes('permission-denied')) return 'The database refused the request. Make sure the Firestore rules from the README are published.';
-  if (code.includes('unavailable') || !navigator.onLine) return "Couldn't reach the database. Check your connection and try again.";
-  return 'Something went wrong: ' + ((e && e.message) || e);
+let lastCities="",lastCity="",CITYDOCS={},unsubCities=null;
+const stripCity=(id,d)=>{const {pins,live,...rest}=d;return {id,...rest}};
+function applyDocs(){
+  const list=Object.keys(CITYDOCS).map(id=>stripCity(id,CITYDOCS[id]));
+  const k=JSON.stringify(list);let ch=false;
+  if(k!==lastCities){lastCities=k;S.cities=list;ch=true}
+  if(S.cityId&&CITYDOCS[S.cityId]){const d=CITYDOCS[S.cityId],pins=Object.values(d.pins||{}),live=d.live||{},k2=JSON.stringify([pins,live]);
+    if(k2!==lastCity){lastCity=k2;S.pins=pins;S.live=live;ch=true}}
+  return ch;
 }
-function gateShell(inner){
-  document.getElementById('app').classList.add('hidden');
-  const g = document.getElementById('gate');
-  g.classList.remove('hidden');
-  g.innerHTML = `<div class="gate-card"><img class="gate-logo" src="icon-192.png" alt="">${inner}</div>`;
+async function loadCities(){if(applyDocs())render()}
+async function loadCity(){if(applyDocs())render()}
+function subscribe(){
+  if(unsubCities)unsubCities();
+  unsubCities=FB.onSnapshot(cityCol(),snap=>{
+    CITYDOCS={};snap.docs.forEach(d=>{CITYDOCS[d.id]=d.data()});
+    const was=S.ready;S.ready=true;S.err="";
+    if(applyDocs()||!was)render();
+  },e=>{S.err=errText(e);S.ready=true;render()});
 }
-function renderGate(err){
-  gateShell(`
-      <h1>Jetset Johnsons</h1>
-      <p>Enter your family code to get in. Not case-sensitive.</p>
-      <div class="field"><label>Family code</label><input type="password" id="gc-code" placeholder="At least 8 characters" autocomplete="off"></div>
-      <div class="field"><label>Your name</label><input type="text" id="gc-name" placeholder="e.g. Jennifer"></div>
-      <button class="btn block" id="gc-go">Let's go</button>
-      <div class="err">${esc(err||'')}</div>
-      <p class="muted" style="margin:10px 0 0;">This code is the only lock on your family's trips, so make it long and hard to guess.</p>`);
-  document.getElementById('gc-name').value = STATE.name;
-  const go = document.getElementById('gc-go');
-  go.onclick = async ()=>{
-    const code = document.getElementById('gc-code').value.trim();
-    const name = document.getElementById('gc-name').value.trim();
-    if (!code || !name){ renderGate('Enter both a code and your name.'); return; }
-    if (code.length < 8){ renderGate('Use a code that is at least 8 characters.'); return; }
-    go.disabled = true; go.textContent = 'Checking…';
-    try{
-      const fid = await familyIdFor(code);
-      if (await familyExists(fid)) finishLogin(fid, name);
-      else renderGateCreate(fid, name);
-    }catch(e){ renderGate(friendlyError(e)); }
-  };
+const store={
+  async setCity(id,data){await commit(FB.setDoc(cityRef(id),clean({...data,pins:{},live:{}})))},
+  async updateCity(id,p){await commit(FB.updateDoc(cityRef(id),clean(p)))},
+  async delCity(id){await commit(FB.deleteDoc(cityRef(id)))},
+  async setPin(cid,id,data){await commit(FB.updateDoc(cityRef(cid),{["pins."+id]:clean({...data,id})}))},
+  async updatePin(cid,id,p){const u={};for(const k in p)if(p[k]!==undefined)u[`pins.${id}.${k}`]=p[k];await commit(FB.updateDoc(cityRef(cid),u))},
+  async delPin(cid,id){await commit(FB.updateDoc(cityRef(cid),{["pins."+id]:FB.deleteField()}))},
+  async setLive(cid,kind,data){await commit(FB.updateDoc(cityRef(cid),{["live."+kind]:clean(data)}))}
+};
+function openCity(id){
+  S.cityId=id;S.pins=[];S.live={};lastCity="";S.tab="eat";S.mapSel=null;S.mapFilter="all";window.scrollTo(0,0);
+  render();loadCity().catch(()=>toast("Couldn't load this trip."));
 }
-function renderGateCreate(fid, name){
-  gateShell(`
-      <h1>Start a new family space?</h1>
-      <p>Nobody has used that code yet. Create a new space with it? Everyone who enters this same code will share the same trips.</p>
-      <p class="muted">If you meant to join an existing space, go back and re-check the code.</p>
-      <button class="btn block" id="gc-create">Create family space</button>
-      <button class="btn ghost block" id="gc-back" style="margin-top:8px;">Back</button>
-      <div class="err" id="gc-err"></div>`);
-  document.getElementById('gc-back').onclick = ()=> renderGate();
-  const b = document.getElementById('gc-create');
-  b.onclick = async ()=>{
-    b.disabled = true; b.textContent = 'Creating…';
-    try{ await createFamily(fid); finishLogin(fid, name); }
-    catch(e){ b.disabled = false; b.textContent = 'Create family space'; document.getElementById('gc-err').textContent = friendlyError(e); }
-  };
+function closeCity(){S.cityId=null;render();window.scrollTo(0,0)}
+function resolveNames(){}
+
+/* ---------- Render ---------- */
+function render(){
+  const app=$("#app");
+  if(!S.cityId){app.innerHTML=homeHTML();$("#navslot").innerHTML=""}
+  else if(!city()){app.innerHTML=S.ready?`<div class="empty"><strong>This trip was removed.</strong><button class="btn" data-act="home">Back to trips</button></div>`:"";$("#navslot").innerHTML=""}
+  else{app.innerHTML=cityHTML();$("#navslot").innerHTML=navHTML()}
+  resolveNames();
 }
-function finishLogin(fid, name){
-  STATE.familyId = fid; STATE.name = name;
-  localStorage.setItem(LS.fid, fid); localStorage.setItem(LS.name, name);
-  startApp();
+function banner(){return S.err?`<div class="banner">${esc(S.err)}</div>`:""}
+function homeHTML(){
+  const t=today();
+  const up=S.cities.filter(c=>!isPast(c)).sort((a,b)=>(a.start||"9").localeCompare(b.start||"9")||a.name.localeCompare(b.name));
+  const past=S.cities.filter(isPast).sort((a,b)=>b.start.localeCompare(a.start));
+  const tile=c=>{const l=tripLabel(c);return `<button class="tile ${isPast(c)?"past":""} ${c.photo?"photo":""}" style="background:${esc(cityBg(c,900))}" data-act="open" data-id="${c.id}">${c.photo?.credit?`<span class="cred">${esc(c.photo.credit)}</span>`:""}<span class="nm">${esc(c.name)}</span><span class="row2"><span>${esc(l.top)}</span>${l.sub?`<span class="pill">${esc(l.sub)}</span>`:""}</span></button>`};
+  return `${banner()}<header class="brand">${LOGO}<div><div class="wordmark">Jetset Johnsons</div><div class="tag">Where we're going, and where we'd go back</div></div>${API.name?`<button class="chip quiet" style="margin-left:auto" data-act="setupOpen">${esc(API.name)}</button>`:""}</header>
+  ${S.cities.length?`${up.length?`<p class="h-label">Up next</p><div class="tiles">${up.map(tile).join("")}</div>`:""}
+  ${past.length?`<p class="h-label">Been there</p><div class="tiles">${past.map(tile).join("")}</div>`:""}`
+  :`<div class="empty"><strong>${S.ready?"Where to first?":"Loading…"}</strong>${S.ready?"Add a city and start pinning restaurants, sights and games for the family.":""}</div>`}
+  <button class="fab" data-act="addCity">${ico("plus")}New trip</button>`;
 }
-function lockApp(){
-  stopWatching();
-  localStorage.removeItem(LS.fid); STATE.familyId = ''; CUR_CITY = null;
-  history.replaceState(null, '', location.pathname);
-  renderGate();
+function navHTML(){
+  return `<nav class="nav" role="tablist"><div class="nav-in">${TABS.map(t=>`<button role="tab" style="--c:${t.c}" aria-selected="${S.tab===t.k}" data-act="tab" data-k="${t.k}"><span class="ib">${ico(t.k)}</span>${t.label}</button>`).join("")}</div></nav>`;
 }
-
-/* =========================================================================
-   Router
-   ========================================================================= */
-function currentRoute(){
-  const h = location.hash.replace(/^#\/?/, '');
-  const parts = h.split('/').filter(Boolean);
-  if (parts[0] === 'city' && parts[1]) return { view:'city', id:parts[1], tab:parts[2]||'plans' };
-  return { view:'home' };
+function cityHTML(){
+  const c=city(),l=tripLabel(c),n=S.pins.length;
+  const p=c.photo,canPhoto=S.places||p?.type==="unsplash";
+  return `${banner()}<section class="hero ${p?"photo":""}" style="background:${esc(cityBg(c,1400))}">
+   <div class="bar"><button class="hbtn" data-act="home">‹ Trips</button><div class="grp">${canPhoto?`<button class="hbtn" data-act="newPhoto" ${S.busy.photo?"disabled":""} aria-label="New photo">${S.busy.photo?"…":"New photo"}</button>`:""}<button class="hbtn" data-act="editCity">Edit</button></div></div>
+   <h1 class="city-name">${esc(c.name)}</h1>
+   <div class="meta"><button class="pill" data-act="editCity">${esc(l.top)}</button>${l.sub?`<span class="pill">${esc(l.sub)}</span>`:""}<span class="pill">${n} ${n===1?"pin":"pins"}</span></div>
+   ${p?.credit?`<a class="credit" href="${esc(p.creditUrl||"#")}" target="_blank" rel="noopener">Photo: ${esc(p.credit)}${p.type==="unsplash"?" on Unsplash":""}</a>`:""}
+  </section>
+  <div style="--c:${catColor(S.tab)}">${tabHTML(c)}</div>`;
 }
-window.addEventListener('hashchange', render);
-
-/* =========================================================================
-   Theme
-   ========================================================================= */
-function applyTheme(){
-  const t = localStorage.getItem(LS.theme);
-  if (t) document.documentElement.setAttribute('data-theme', t);
-}
-function toggleTheme(){
-  const cur = document.documentElement.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
-  const next = cur === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem(LS.theme, next);
-}
-
-/* =========================================================================
-   Sheets (bottom modal)
-   ========================================================================= */
-function openSheet(html, onMount){
-  const host = document.getElementById('sheetHost');
-  host.innerHTML = `<div class="sheet-overlay" id="ov"><div class="sheet"><div class="sheet-handle"></div>${html}</div></div>`;
-  document.getElementById('ov').addEventListener('click', e=>{ if(e.target.id==='ov') closeSheet(); });
-  if (onMount) onMount(host);
-}
-function closeSheet(){ document.getElementById('sheetHost').innerHTML=''; }
-
-/* =========================================================================
-   HOME
-   ========================================================================= */
-function daysUntil(dateStr){
-  const today = new Date(); today.setHours(0,0,0,0);
-  const d = new Date(dateStr+'T00:00:00');
-  return Math.round((d-today)/86400000);
-}
-function countdownLabel(city){
-  const startD = daysUntil(city.startDate), endD = daysUntil(city.endDate);
-  if (endD < 0) return `${Math.abs(endD)}d ago`;
-  if (startD <= 0 && endD >= 0) return 'Happening now';
-  if (startD === 1) return 'Tomorrow!';
-  return `in ${startD}d`;
-}
-function fmtRange(city){
-  const opts = {month:'short', day:'numeric'};
-  const s = new Date(city.startDate+'T00:00:00').toLocaleDateString('en-US', opts);
-  const e = new Date(city.endDate+'T00:00:00').toLocaleDateString('en-US', opts);
-  return s===e ? s : `${s} – ${e}`;
-}
-function skylineSVG(id, colorA, colorB){
-  const seed = hashStr(id);
-  let bars = '';
-  let x = 0;
-  for (let i=0; i<14; i++){
-    const w = 14 + ((seed>>i)&7);
-    const h = 40 + (((seed>>(i*2))%9) * 14);
-    bars += `<rect x="${x}" y="${180-h}" width="${w-2}" height="${h}" fill="rgba(255,255,255,.18)"/>`;
-    x += w;
-    if (x>240) break;
-  }
-  return `<svg viewBox="0 0 240 180" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%;">${bars}</svg>`;
-}
-
-async function renderHome(){
-  stopWatching(); CUR_CITY = null;
-  const app = document.getElementById('app');
-  app.innerHTML = `
-    <div class="topbar"><div class="topbar-inner wrap" style="padding-left:0;padding-right:0;">
-      <div class="wordmark">✈️ Jetset Johnsons</div>
-      <button class="iconbtn" id="lockBtn" title="Switch family">🔑</button>
-      <button class="iconbtn" id="themeBtn">🌓</button>
-    </div></div>
-    <div class="wrap" id="homeBody"><div class="spinner"></div></div>`;
-  document.getElementById('themeBtn').onclick = toggleTheme;
-  document.getElementById('lockBtn').onclick = ()=>{ if (confirm('Switch to a different family code on this device?')) lockApp(); };
-
-  let cities;
-  try { cities = await getCities(); } catch(e){ document.getElementById('homeBody').innerHTML = `<div class="empty-state">Couldn't load trips.<br>${e.message}</div>`; return; }
-  cities.sort((a,b)=> a.startDate.localeCompare(b.startDate));
-  const upNext = cities.filter(c=> daysUntil(c.endDate) >= 0);
-  const been = cities.filter(c=> daysUntil(c.endDate) < 0).reverse();
-
-  function tile(c){
-    return `<div class="city-tile" data-id="${c.id}">
-      <div class="cover" style="background:${gradientFor(c.id)}">${skylineSVG(c.id)}</div>
-      <div class="fade"></div>
-      <div class="badge">${countdownLabel(c)}</div>
-      <div class="meta"><div class="name">${esc(c.name)}</div><div class="dates">${fmtRange(c)}</div></div>
-    </div>`;
-  }
-
-  const body = document.getElementById('homeBody');
-  body.innerHTML = `
-    ${upNext.length ? `<div class="section-title">Up next</div><div class="city-grid">${upNext.map(tile).join('')}<div class="add-city-tile" id="addTile"><div class="plus">+</div>Add a trip</div></div>` : `<div class="section-title">Up next</div><div class="city-grid"><div class="add-city-tile" id="addTile"><div class="plus">+</div>Add a trip</div></div>`}
-    ${been.length ? `<div class="section-title">Been there</div><div class="city-grid">${been.map(tile).join('')}</div>` : ''}
-  `;
-  body.querySelectorAll('.city-tile').forEach(el=>{
-    el.onclick = ()=>{ location.hash = `#/city/${el.dataset.id}`; };
-  });
-  document.getElementById('addTile').onclick = openAddCitySheet;
-}
-
-function openAddCitySheet(){
-  openSheet(`
-    <h2>Add a trip</h2>
-    <div class="field"><label>City</label><input type="text" id="nc-name" placeholder="e.g. Austin"></div>
-    <div class="field"><label>State</label><input type="text" id="nc-state" placeholder="e.g. TX"></div>
-    <div class="field-grid">
-      <div class="field"><label>Start date</label><input type="date" id="nc-start"></div>
-      <div class="field"><label>End date</label><input type="date" id="nc-end"></div>
-    </div>
-    <div class="sheet-actions"><button class="btn ghost" id="nc-cancel">Cancel</button><button class="btn" id="nc-save">Save trip</button></div>
-  `);
-  document.getElementById('nc-cancel').onclick = closeSheet;
-  document.getElementById('nc-save').onclick = async ()=>{
-    const name = document.getElementById('nc-name').value.trim();
-    const state = document.getElementById('nc-state').value.trim();
-    const startDate = document.getElementById('nc-start').value;
-    const endDate = document.getElementById('nc-end').value || startDate;
-    if (!name || !startDate){ toast('Add at least a city and start date'); return; }
-    const city = await putCity('new', {name, state, startDate, endDate});
-    closeSheet();
-    location.hash = `#/city/${city.id}`;
-  };
-}
-
-/* =========================================================================
-   CITY PAGE
-   ========================================================================= */
-const TABS = [
-  {id:'plans', label:'Plans', icon:'🗓️'}, {id:'eat', label:'Eat', icon:'🍽️'}, {id:'play', label:'Play', icon:'🎉'},
-  {id:'explore', label:'Explore', icon:'🧭'}, {id:'events', label:'Events', icon:'🎫'}, {id:'sports', label:'Sports', icon:'🏟️'}, {id:'map', label:'Map', icon:'🗺️'},
-];
-
-let CUR_CITY = null;
-
-async function renderCityPage(id, tab){
-  const app = document.getElementById('app');
-  app.innerHTML = `<div class="spinner" style="margin-top:80px;"></div>`;
-  let city;
-  if (CUR_CITY && CUR_CITY.id === id && STATE.unsub) city = CUR_CITY;   // live copy is already current
-  else { try{ city = await getCity(id); } catch(e){ app.innerHTML = `<div class="wrap empty-state">Trip not found.<br><a href="#/">Go home</a></div>`; return; } }
-  CUR_CITY = city;
-
-  const pins = Object.values(city.pins||{});
-  const bookedCount = pins.filter(p=>p.tickets).length;
-  const grad = gradientFor(city.id);
-
-  app.innerHTML = `
-    <div class="hero">
-      <div class="cover" style="${city.photoUrl ? `background-image:url('${city.photoUrl}');background-size:cover;background-position:center;` : `background:${grad}`}">${city.photoUrl?'':skylineSVG(city.id)}</div>
-      <div class="fade"></div>
-      <button class="iconbtn hero-photo-btn" id="backBtn" style="left:12px;right:auto;position:absolute;background:rgba(255,255,255,.25);color:#fff;border-color:transparent;">←</button>
-      ${STATE.config.hasMaps ? `<button class="iconbtn hero-photo-btn" id="newPhotoBtn" style="background:rgba(255,255,255,.25);color:#fff;border-color:transparent;">📷</button>` : ''}
-      <div class="hero-content">
-        <h1>${esc(city.name)}</h1>
-        <div class="hero-pills">
-          <span class="pill">${fmtRange(city)}</span>
-          <span class="pill" id="pinPill">${pins.length} pin${pins.length===1?'':'s'}</span>
-          <span class="pill" id="bookedPill">${bookedCount} booked</span>
-        </div>
-      </div>
-    </div>
-    <div class="tab-content wrap" id="tabBody"></div>
-    <div class="tabbar"><div class="tabbar-inner" id="tabbar"></div></div>
-  `;
-  document.getElementById('backBtn').onclick = ()=> location.hash = '#/';
-  if (document.getElementById('newPhotoBtn')) document.getElementById('newPhotoBtn').onclick = async ()=>{
-    toast('Finding a photo…');
-    try{ await cyclePhoto(city.id); renderCityPage(id, tab); } catch(e){ toast(e.message); }
-  };
-
-  const bar = document.getElementById('tabbar');
-  bar.innerHTML = TABS.map(t=>`<button class="tab-btn ${t.id===tab?'active':''}" data-tab="${t.id}"><span class="ic">${t.icon}</span>${t.label}</button>`).join('');
-  bar.querySelectorAll('.tab-btn').forEach(b=> b.onclick = ()=>{ location.hash = `#/city/${id}/${b.dataset.tab}`; });
-
-  renderTab(tab);
-  startWatching(id);
-}
-
-function stopWatching(){ if (STATE.unsub){ STATE.unsub(); STATE.unsub = null; } }
-function updatePills(){
-  if (!CUR_CITY) return;
-  const pins = Object.values(CUR_CITY.pins || {});
-  const a = document.getElementById('pinPill'), b = document.getElementById('bookedPill');
-  if (a) a.textContent = `${pins.length} pin${pins.length===1?'':'s'}`;
-  if (b) b.textContent = `${pins.filter(p=>p.tickets).length} booked`;
-}
-// Live updates: when anyone in the family changes this trip, it shows up here right away.
-function startWatching(id){
-  stopWatching();
-  STATE.unsub = FB.onSnapshot(cityRef(id), snap => {
-    if (!snap.exists()) return;
-    const r = currentRoute();
-    if (r.view !== 'city' || r.id !== id) return;
-    const fresh = cityFromSnap(snap);
-    if (JSON.stringify(fresh) !== JSON.stringify(CUR_CITY)){
-      CUR_CITY = fresh; updatePills(); renderTab(r.tab || 'plans');
-    }
-  }, () => { /* transient listener errors are ignored; the next snapshot recovers */ });
-}
-
-function renderTab(tab){
-  const body = document.getElementById('tabBody');
-  if (!body) return;
-  const fns = { plans:tabPlans, eat:tabEat, play:tabPlay, explore:tabExplore, events:tabEvents, sports:tabSports, map:tabMap };
-  (fns[tab]||tabPlans)(body);
-}
-
-/* ---------- shared pin card ---------- */
-function pinCard(pin, opts={}){
-  const cat = CAT[pin.category] || CAT.see;
-  const dirUrl = mapsDirUrl(pin);
-  let extraBtns = '';
-  if (pin.category==='eat'){
-    const menu = pin.menuUrl || pin.website || `https://www.google.com/search?q=${encodeURIComponent((pin.title||'')+' '+ (CUR_CITY?CUR_CITY.name:'') +' menu')}`;
-    extraBtns += `<a class="btn small ghost" href="${menu}" target="_blank" rel="noopener">Menu</a>`;
-  }
-  if (!pin.tickets && (pin.category==='eat' || pin.category==='play')){
-    extraBtns += `<button class="btn small ghost" data-act="reserved" data-pid="${pin.id}">Reserved</button>`;
-  }
-  return `
-  <div class="card" data-pid="${pin.id}">
-    <div class="card-row">
-      <div>
-        <h3>${esc(pin.title)}</h3>
-        ${pin.note ? `<div class="sub">${esc(pin.note)}</div>` : ''}
-        <div class="chipline">
-          <span class="chip cat" style="background:${cat.color}">${cat.icon} ${cat.label}</span>
-          ${pin.status==='loved' ? `<span class="chip status-loved">❤ Loved</span>` : `<span class="chip">☆ Want</span>`}
-          ${pin.byName ? `<span class="chip">by ${esc(pin.byName)}</span>` : ''}
-          ${pin.rating ? `<span class="chip">★ ${pin.rating}</span>` : ''}
-        </div>
-      </div>
-    </div>
-    <div class="btnrow">
-      <a class="btn small ghost" href="${dirUrl}" target="_blank" rel="noopener">Directions</a>
-      ${extraBtns}
-      <button class="btn small ghost" data-act="edit" data-pid="${pin.id}">Edit</button>
-      <button class="btn small ghost" data-act="remove" data-pid="${pin.id}">Remove</button>
-    </div>
+function pinsOf(k){return S.pins.filter(p=>p.cat===k).sort((a,b)=>(b.at||0)-(a.at||0))}
+function pinCard(p,c){
+  const loved=p.status==="loved";
+  const inner=`${p.when?`<div class="when">${esc(p.when)}</div>`:""}<div class="t">${esc(p.title)}</div>
+  ${p.note?`<div class="d">${esc(p.note)}</div>`:""}
+  <div class="who">Pinned by ${esc(p.byName&&p.byName===API.name?"you":(p.byName||"someone"))}</div>
+  <div class="acts">
+    <a class="chip go" href="${esc(dirs(p.title,c.name))}" target="_blank" rel="noopener">${ico("dir")}Directions</a>
+    ${extraLinks(p,p.cat,c)}
+    <button class="chip ${loved?"on":""}" data-act="status" data-id="${p.id}">${ico("heart")}${loved?"Loved it":"Want to go"}</button>
+    ${p.url?`<a class="chip" href="${esc(p.url)}" target="_blank" rel="noopener">${ico("link")}Link</a>`:""}
+    <button class="chip quiet" data-act="delPin" data-id="${p.id}">Remove</button>
   </div>`;
+  return wrapCard(p,p.cat,inner);
 }
-function mapsDirUrl(pin){
-  const q = pin.lat && pin.lng ? `${pin.lat},${pin.lng}` : encodeURIComponent(`${pin.title} ${CUR_CITY?CUR_CITY.name:''}`);
-  return `https://www.google.com/maps/dir/?api=1&destination=${q}`;
+function pinsSection(k,c,title,sub,addLabel){
+  const ps=pinsOf(k);
+  return `<section class="sec"><div class="sec-head"><div><h2>${title}</h2><p class="sub">${sub}</p></div></div>
+  ${ps.length?`<ul class="cards">${ps.map(p=>pinCard(p,c)).join("")}</ul>`:(addLabel?"":`<p class="note">Nothing pinned yet.</p>`)}
+  ${addLabel?`<button class="add" data-act="addPin" data-k="${k}">${ico("plus")}${addLabel}</button>`:""}</section>`;
 }
-function wirePinCardActions(container){
-  container.querySelectorAll('[data-act="remove"]').forEach(b=> b.onclick = async ()=>{
-    if (!confirm('Remove this pin?')) return;
-    await delPin(CUR_CITY.id, b.dataset.pid);
-    delete CUR_CITY.pins[b.dataset.pid];
-    updatePills(); renderTab(currentRoute().tab);
+function when(ts){return ts?new Date(ts).toLocaleDateString(undefined,{month:"short",day:"numeric"}):""}
+const SEARCH={eat_best:"best restaurants",eat_local:"classic local restaurants",eat_date:"date night restaurants",eat_brunch:"brunch spots",eat_casual:"cheap eats",play:"live music, comedy and nightlife",see:"top things to do",annual:"annual festivals and events"};
+function searchLink(kind,c){
+  const q=SEARCH[kind];if(!q)return "";
+  const url=kind==="annual"?g(q+" in "+c.name+" "+monthsLabel(c)):mapsQ(q,c.name);
+  return `<a class="chip go" href="${esc(url)}" target="_blank" rel="noopener">${ico(kind==="annual"?"events":"map")}Search “${esc(q)}”${kind==="annual"?"":" on Google Maps"}</a><p class="note" style="margin-top:8px">Found something good? Pin it above so the whole family sees it.</p>`;
+}
+function aiBtn(kind,label){
+  if(!S.ready)return "";
+  if(!S.ai){const c=city();return c?searchLink(kind,c):""}
+  const b=S.busy[kind];
+  return `<button class="btn ${S.live[kind]?"soft":""}" data-act="ai" data-kind="${kind}" ${b?"disabled":""}>${ico("spark")}${b?"Finding…":esc(S.live[kind]?"Refresh":label)}</button>`;
+}
+function suggestCard(it,i,src,cat,c){
+  const pinned=S.pins.some(p=>p.cat===cat&&p.title===it.name);
+  const inner=`<div class="t">${esc(it.name)}</div>${it.kind?`<div class="when" style="margin:2px 0 0">${esc(it.kind)}</div>`:""}
+   <div class="d">${esc(it.why)}</div>${it.area?`<div class="who">${esc(it.area)}</div>`:""}
+   <div class="acts">${pinned?`<span class="chip on">${ico("pin")}Pinned</span>`:`<button class="chip go" data-act="pinFrom" data-src="${src}" data-i="${i}">${ico("pin")}Pin</button>`}
+   ${extraLinks(it,cat,c)}
+   <a class="chip" href="${esc(dirs(it.name,c.name))}" target="_blank" rel="noopener">${ico("dir")}Directions</a></div>`;
+  return wrapCard(it,cat,inner);
+}
+function discover(kind,cat,c,title,sub,btn,extra=""){
+  const L=S.live[kind];
+  return `<section class="sec"><div class="sec-head"><div><h2>${title}</h2><p class="sub">${L?"Updated "+when(L.at)+". Tap Pin to save one for the family.":(S.ai?sub:"Search Google Maps, then pin what the family likes.")}</p></div></div>${extra}
+  ${L?.items?.length?`<ul class="cards">${L.items.map((it,i)=>suggestCard(it,i,kind,cat,c)).join("")}</ul>`:""}
+  <div style="margin-top:12px">${aiBtn(kind,btn)}</div></section>`;
+}
+function tabHTML(c){
+  switch(S.tab){
+  case "eat":{
+    const st=EAT_STYLES.find(s=>s.k===S.eatStyle)||EAT_STYLES[0];
+    const seg=`<div class="seg" style="--c:var(--eat)">${EAT_STYLES.map(s=>`<button aria-pressed="${s.k===st.k}" data-act="eatStyle" data-k="${s.k}">${s.l}</button>`).join("")}</div>`;
+    return pinsSection("eat",c,"Our restaurants","Loved it, or want to try it. Anyone can add.","Pin a restaurant")+
+      discover("eat_"+st.k,"eat",c,"Find restaurants","Pick a vibe, then load the city's standouts.","Find "+st.l.toLowerCase()+" spots",seg);
+  }
+  case "play":return pinsSection("play",c,"Our fun spots","Shows, bars, rooftops, nightlife.","Pin a spot")+
+      discover("play","play",c,"Find entertainment","Live music, comedy, bars, shows and nightlife.","Find things to do at night");
+  case "see":return pinsSection("see",c,"Our sights","Saved from below or added by hand.","Add a sight")+
+      discover("see","see",c,"Popular things to do","Landmarks, museums, neighborhoods and outdoors.","Find things to do in "+c.name);
+  case "events":return pinsSection("events",c,"Our events","Concerts, festivals and shows to catch.","Add an event")+eventsHTML(c);
+  case "games":return pinsSection("games",c,"Our games","Games we're going to, or want to.",null)+sportsHTML(c);
+  case "map":return mapHTML(c);
+  }
+}
+function liveBtn(kind,c,label){
+  if(!S.ai)return "";
+  if(!c.start)return `<p class="note" style="margin-top:10px">Add trip dates to load a live list.</p>`;
+  const b=S.busy["r_"+kind],has=S.live[kind];
+  return `<div style="margin-top:12px"><button class="btn ${has?"soft":""}" data-act="refresh" data-kind="${kind}" ${b?"disabled":""}>${ico("spark")}${b?"Searching the web. This takes about a minute…":esc(has?"Check again":label)}</button></div>`;
+}
+async function refreshLive(kind){
+  const c=city();if(!c||S.busy["r_"+kind])return;
+  S.busy["r_"+kind]=true;render();
+  try{const j=await API.req("POST",`/cities/${c.id}/refresh`,{kind});await loadCity();toast(j.count?`Found ${j.count}`:"Nothing found for those dates")}
+  catch(e){toast(e.code==="rate_limited"?"Too many requests. Try again shortly.":e.code==="no_dates"?"Add trip dates first.":"Couldn't load right now. Try again.")}
+  finally{S.busy["r_"+kind]=false;render()}
+}
+function eventsHTML(c){
+  const m=monthsLabel(c),V=S.live.events,A=S.live.annual;
+  const ver=(V?.items||[]).filter(e=>inRange(e.date,c)).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+  return `<section class="sec"><div class="sec-head"><div><h2>Happening ${c.start?"during the trip":"soon"}</h2><p class="sub">Live listings for ${esc(c.name)}, ${esc(m)}.</p></div></div>
+  <div class="links">
+   <a class="chip go" target="_blank" rel="noopener" href="${esc(g("events in "+c.name+" "+m)+"&ibp=htl;events")}">${ico("events")}All events</a>
+   <a class="chip" target="_blank" rel="noopener" href="${esc(g("concerts in "+c.name+" "+m))}">${ico("play")}Concerts</a>
+   <a class="chip" target="_blank" rel="noopener" href="${esc(g("festivals in "+c.name+" "+m))}">${ico("spark")}Festivals</a>
+   <a class="chip" target="_blank" rel="noopener" href="https://www.ticketmaster.com/search?q=${encodeURIComponent(c.name)}">${ico("ticket")}Ticketmaster</a>
+  </div>${liveBtn("events",c,"Load confirmed events for our dates")}</section>
+  ${V?`<section class="sec"><div class="sec-head"><div><h2>Confirmed for your dates</h2><p class="sub">Checked ${when(V.at)}${V.note?". "+esc(V.note):""}</p></div></div>
+   ${ver.length?`<ul class="cards">${ver.map(e=>{const pinned=S.pins.some(p=>p.cat==="events"&&p.title===e.name);return `<li class="card" style="--c:var(--events)"><div class="ico">${ico("events")}</div><div><div class="when">${esc(fmt(e.date,{weekday:"short",month:"short",day:"numeric"}))}${e.time?", "+esc(e.time):""}</div><div class="t">${esc(e.name)}</div>${e.venue?`<div class="d">${esc(e.venue)}</div>`:""}
+    <div class="acts">${pinned?`<span class="chip on">${ico("pin")}Pinned</span>`:`<button class="chip go" data-act="pinFrom" data-src="events" data-id="${esc(e.name+e.date)}">${ico("pin")}Pin</button>`}${e.venue?`<a class="chip" href="${esc(dirs(e.venue,c.name))}" target="_blank" rel="noopener">${ico("dir")}Directions</a>`:""}${e.url?`<a class="chip" href="${esc(e.url)}" target="_blank" rel="noopener">${ico("ticket")}Details</a>`:""}</div></div></li>`}).join("")}</ul>`:`<p class="note">None of the checked events fall inside your current dates.</p>`}</section>`:""}
+  <section class="sec"><div class="sec-head"><div><h2>Yearly traditions around then</h2><p class="sub">${A?"These usually land in this window. Confirm exact dates before you go.":"Festivals and seasonal events that usually happen around your dates."}</p></div></div>
+  ${A?.items?.length?`<ul class="cards">${A.items.map((it,i)=>{const pinned=S.pins.some(p=>p.cat==="events"&&p.title===it.name);return `<li class="card" style="--c:var(--events)"><div class="ico">${ico("spark")}</div><div><div class="when">${esc(it.typical_timing)}</div><div class="t">${esc(it.name)}</div><div class="d">${esc(it.why)}</div>
+    <div class="acts">${pinned?`<span class="chip on">${ico("pin")}Pinned</span>`:`<button class="chip go" data-act="pinFrom" data-src="annual" data-i="${i}">${ico("pin")}Pin</button>`}<a class="chip" href="${esc(g(it.name+" "+c.name+" "+(c.start||today()).slice(0,4)+" dates"))}" target="_blank" rel="noopener">Check dates</a></div></div></li>`}).join("")}</ul>`:A?`<p class="note">No recurring events usually fall in this window.</p>`:""}
+  <div style="margin-top:12px">${aiBtn("annual","Find yearly events")}</div></section>`;
+}
+function sportsHTML(c){
+  const m=metroFor(c.name),mo=monthsLabel(c),G=S.live.games;
+  const ver=(G?.items||[]).filter(e=>inRange(e.date,c)).sort((a,b)=>(a.date+(a.time||"")).localeCompare(b.date+(b.time||"")));
+  let h=S.ai?`<section class="sec"><div class="sec-head"><div><h2>Live game lookup</h2><p class="sub">Searches official schedules for every home game during your trip.</p></div></div>${liveBtn("games",c,"Load games for our dates")}</section>`:"";
+  if(G)h+=`<section class="sec"><div class="sec-head"><div><h2>Games during your trip</h2><p class="sub">Checked ${when(G.at)}. Times are local.</p></div></div>
+   ${ver.length?`<ul class="cards">${ver.map(e=>{const pinned=S.pins.some(p=>p.cat==="games"&&p.title===e.matchup);return `<li class="card" style="--c:var(--games)"><div class="ico">${ico("games")}</div><div><div class="when">${esc(fmt(e.date,{weekday:"short",month:"short",day:"numeric"}))}${e.time?", "+esc(e.time):""}</div><div class="t">${esc(e.matchup)}</div><div class="d">${esc(e.league)}${e.venue?", "+esc(e.venue):""}</div>
+    <div class="acts">${pinned?`<span class="chip on">${ico("pin")}Pinned</span>`:`<button class="chip go" data-act="pinFrom" data-src="games" data-id="${esc(e.matchup+e.date)}">${ico("pin")}Pin</button>`}${e.venue?`<a class="chip" href="${esc(dirs(e.venue,c.name))}" target="_blank" rel="noopener">${ico("dir")}Directions</a>`:""}<a class="chip" href="${esc(e.url||g(e.matchup+" "+e.date+" tickets"))}" target="_blank" rel="noopener">${ico("ticket")}Tickets</a></div></div></li>`}).join("")}</ul>`:`<p class="note">No checked games fall inside your current dates.</p>`}</section>`;
+  if(!m)return h+`<section class="sec"><h2>Pro teams</h2><p class="sub">No NFL, NBA, NHL or MLB team is based in ${esc(c.name)}.</p><div class="links" style="margin-top:10px"><a class="chip go" target="_blank" rel="noopener" href="${esc(g("sports games near "+c.name+" "+mo))}">${ico("games")}Games nearby</a></div></section>`;
+  const lgs=LEAGUES.filter(l=>m[l]).map(l=>({l,st:seasonStatus(l,c.start,c.end)})).sort((a,b)=>"ipo".indexOf(a.st[0])-"ipo".indexOf(b.st[0]));
+  h+=`<section class="sec"><div class="sec-head"><div><h2>${esc(m.n)} teams</h2><p class="sub">${c.start?"For "+esc(fmt(c.start))+(c.end?" – "+esc(fmt(c.end)):"")+".":"Add trip dates to see who's in season."} Tap Schedule for exact times.</p></div></div>`;
+  lgs.forEach(({l,st})=>{
+    const lab={in:"In season",post:"Playoffs window",off:"Off-season"}[st];
+    h+=`<p class="league">${l}</p><ul class="cards">${m[l].map(t=>`<li class="card" style="--c:var(--games)"><div class="ico">${ico("games")}</div><div><div class="team"><div class="t">${esc(t)}</div><span class="badge ${st}">${lab}</span></div>
+      <div class="acts"><a class="chip go" target="_blank" rel="noopener" href="${esc(g(t+" home schedule "+mo))}">${ico("events")}Schedule</a><a class="chip" target="_blank" rel="noopener" href="https://www.ticketmaster.com/search?q=${encodeURIComponent(t)}">${ico("ticket")}Tickets</a>
+      ${st!=="off"?`<button class="chip quiet" data-act="pinTeam" data-t="${esc(t)}">${ico("pin")}Pin a game</button>`:""}</div></div></li>`).join("")}</ul>`;
   });
-  container.querySelectorAll('[data-act="edit"]').forEach(b=> b.onclick = ()=>{ const p = CUR_CITY.pins[b.dataset.pid]; if (p.tickets) openPlansSheet(p); else openPinSheet(p); });
-  container.querySelectorAll('[data-act="ics"]').forEach(b=> b.onclick = ()=> downloadICS(CUR_CITY.pins[b.dataset.pid]));
-  container.querySelectorAll('[data-act="reserved"]').forEach(b=> b.onclick = ()=> openPlansSheet(CUR_CITY.pins[b.dataset.pid]));
+  return h+`</section>`;
 }
 
-/* ---------- Plans tab ---------- */
-function fmtTime12(t){
-  if (!t) return '';
-  let [h,m] = t.split(':').map(Number);
-  const ap = h>=12?'PM':'AM'; h = h%12; if(h===0)h=12;
-  return `${h}:${String(m).padStart(2,'0')} ${ap}`;
+/* ---------- Map ---------- */
+function mapHTML(c){
+  const f=S.mapFilter,pins=S.pins.filter(p=>f==="all"||p.cat===f);
+  let pts=pins.filter(hasGeo);
+  if(pts.length>2){const med=a=>[...a].sort((x,y)=>x-y)[Math.floor(a.length/2)];const la=med(pts.map(p=>p.lat)),ln=med(pts.map(p=>p.lng));pts=pts.filter(p=>km(p.lat,p.lng,la,ln)<80)}
+  const offMap=pins.filter(p=>!pts.includes(p)),untried=S.pins.filter(p=>!hasGeo(p)&&!p.geoTried);
+  const cats=["all","eat","play","see","events","games"].filter(k=>k==="all"||S.pins.some(p=>p.cat===k));
+  const seg=`<div class="seg">${cats.map(k=>`<button style="--c:${k==="all"?"var(--ink)":catColor(k)}" aria-pressed="${f===k}" data-act="mapFilter" data-k="${k}">${k==="all"?"Everything":TABS.find(t=>t.k===k).label}</button>`).join("")}</div>`;
+  const route=pts.slice(0,10);
+  const routeUrl="https://www.google.com/maps/dir/"+route.map(p=>encodeURIComponent(p.title+", "+c.name)).join("/");
+  let svg="";
+  const W=360,H=400,pad=40;
+  if(pts.length){
+    const midLat=pts.reduce((s,p)=>s+p.lat,0)/pts.length,k=Math.cos(midLat*Math.PI/180);
+    const xs=pts.map(p=>p.lng*k),ys=pts.map(p=>p.lat);
+    let x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+    const minSpan=.012;if(x1-x0<minSpan){const m=(x0+x1)/2;x0=m-minSpan/2;x1=m+minSpan/2}if(y1-y0<minSpan){const m=(y0+y1)/2;y0=m-minSpan/2;y1=m+minSpan/2}
+    const sc=Math.min((W-2*pad)/(x1-x0),(H-2*pad-20)/(y1-y0));
+    const ox=(W-(x1-x0)*sc)/2,oy=(H-20-(y1-y0)*sc)/2+10;
+    const P=p=>[ox+(p.lng*k-x0)*sc,oy+(y1-p.lat)*sc];
+    let grid="";for(let x=20;x<W;x+=40)grid+=`<line class="grid" x1="${x}" y1="0" x2="${x}" y2="${H}"/>`;for(let y=20;y<H;y+=40)grid+=`<line class="grid" x1="0" y1="${y}" x2="${W}" y2="${y}"/>`;
+    const miPerUnit=69/sc,nice=[.1,.25,.5,1,2,5,10,20],mi=nice.find(n=>n/miPerUnit>=50)||20,bar=mi/miPerUnit;
+    const showLbl=pts.length<=12;
+    const order=[...pts].sort((a,b)=>(a.id===S.mapSel)-(b.id===S.mapSel));
+    const marks=order.map(p=>{const [x,y]=P(p),sel=p.id===S.mapSel,s=sel?1.35:1,col=catColor(p.cat);
+      return `<g class="pinmark" data-act="mapSel" data-id="${p.id}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><circle r="16" fill="transparent"/>
+      <g transform="scale(${s})"><ellipse cy="1" rx="5" ry="2" fill="#000" opacity=".15"/><path d="M0 0C-2-6-9-9-9-15a9 9 0 0 1 18 0c0 6-7 9-9 15z" fill="${col}" stroke="var(--surface)" stroke-width="2"/><circle cy="-15" r="3.5" fill="#fff"/></g>
+      ${showLbl||sel?`<text class="lbl" x="${x>W-110?-12:12}" y="-12" text-anchor="${x>W-110?"end":"start"}">${esc(p.title.length>22?p.title.slice(0,21)+"…":p.title)}</text>`:""}</g>`}).join("");
+    svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Map of pinned places">${grid}
+      <g transform="translate(${W-30} 34)"><circle r="14" fill="var(--surface)" stroke="var(--line)"/><path d="M0-9 4 3 0 0-4 3z" fill="var(--ink)"/><text y="-17" text-anchor="middle" class="scale">N</text></g>
+      ${marks}
+      <g transform="translate(18 ${H-18})"><line x1="0" y1="0" x2="${bar.toFixed(1)}" y2="0" stroke="var(--muted)" stroke-width="2"/><line x1="0" y1="-4" x2="0" y2="4" stroke="var(--muted)" stroke-width="2"/><line x1="${bar.toFixed(1)}" y1="-4" x2="${bar.toFixed(1)}" y2="4" stroke="var(--muted)" stroke-width="2"/><text class="scale" x="${(bar/2).toFixed(1)}" y="-7" text-anchor="middle">${mi} mi</text></g></svg>`;
+  }
+  const sel=S.pins.find(p=>p.id===S.mapSel);
+  return `<section class="sec"><div class="sec-head"><div><h2>Everything we pinned</h2><p class="sub">Tap a pin for directions.${S.places?"":" Positions are approximate."}</p></div></div>${seg}
+   <div class="mapbox">${svg||`<div class="empty" style="padding:40px 20px;text-align:center"><strong>No pins on the map yet</strong>Pin restaurants and sights and they'll show up here.</div>`}</div>
+   ${sel?`<ul class="cards sel-card">${pinCard(sel,c)}</ul>`:""}
+   <div class="acts" style="margin-top:12px">
+    ${route.length>1?`<a class="chip go" style="--c:var(--map)" href="${esc(routeUrl)}" target="_blank" rel="noopener">${ico("map")}Open ${route.length} stops in Google Maps</a>`:""}
+    ${untried.length&&S.ai&&!S.places?`<button class="chip" data-act="locate" ${S.busy.locate?"disabled":""}>${ico("spark")}${S.busy.locate?"Placing…":"Place "+untried.length+" more on the map"}</button>`:""}
+   </div>
+   ${offMap.length?`<p class="note" style="margin-top:10px">Not on the map: ${offMap.map(p=>esc(p.title)).join(", ")}. Use Directions on the pin instead.</p>`:""}
+  </section>`;
 }
-function tabPlans(body){
-  const pins = Object.values(CUR_CITY.pins||{}).filter(p=>p.tickets);
-  if (!pins.length){
-    body.innerHTML = `<div class="empty-state">No booked plans yet.<br><span class="muted">Mark restaurants, games, or events as reserved to see them here.</span></div>`;
+async function locate(list){
+  const c=city();if(!c||!S.ai||!list.length)return;
+  const names=list.map(p=>p.title);
+  try{
+    const res=await aiJSON(`For each place in or near ${c.name}, give its approximate latitude and longitude. Places: ${JSON.stringify(names)}. Reply with only a JSON array in the same order, one object per place: {"name": string, "lat": number or null, "lng": number or null}. Use null when you are not confident the place exists or where it is.`);
+    if(!Array.isArray(res))return;
+    for(let i=0;i<list.length;i++){const r=res[i]||{},lat=num(r.lat),lng=num(r.lng);
+      try{await store.updatePin(c.id,list[i].id,lat!==null&&lng!==null?{lat,lng,geoTried:true}:{geoTried:true})}catch{}}
+  }catch{}
+}
+
+/* ---------- Sheets ---------- */
+function sheet(html,locked){$("#modal").innerHTML=`<div class="scrim" ${locked?"":'data-act="close"'}><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${html}</div></div>`;const f=$("#modal input");f&&setTimeout(()=>f.focus(),60)}
+function closeSheet(){$("#modal").innerHTML=""}
+function setupSheet(msg){
+  const ok=API.name&&API.fid;
+  sheet(`<h3>Welcome to Jetset Johnsons</h3>${msg?`<p class="note" style="color:var(--eat)">${esc(msg)}</p>`:""}
+  <label class="field"><span>Family code</span><input id="s-code" type="password" placeholder="${API.fid?"Leave blank to keep the current family":"At least 8 characters. Not case-sensitive."}" autocomplete="off" autocapitalize="off"></label>
+  <label class="field"><span>Your name</span><input id="s-name" value="${esc(API.name)}" placeholder="Mom" autocomplete="given-name"></label>
+  <p class="note">The code is the only lock on your family's trips, so make it long and hard to guess. Everyone who enters the same code shares the same trips.</p>
+  <div class="foot"><span></span><button class="btn" data-act="saveSetup">Continue</button></div>`,!ok);
+}
+let PENDING_FID="";
+function createSheet(fid){
+  PENDING_FID=fid;
+  sheet(`<h3>Start a new family space?</h3>
+  <p class="note">Nobody has used that code yet. Create a new space with it? Everyone who enters this same code will share the same trips.</p>
+  <p class="note">If you meant to join an existing space, go back and re-check the code.</p>
+  <div class="foot"><button class="btn soft" data-act="cancelCreate">Back</button><button class="btn" data-act="createFamily">Create family space</button></div>`,true);
+}
+function citySheet(c){
+  sheet(`<h3>${c?"Edit trip":"New trip"}</h3>
+  <label class="field"><span>City</span><input id="f-name" value="${esc(c?.name||"")}" placeholder="Boston" autocomplete="off"></label>
+  <div class="two"><label class="field"><span>Arrive</span><input id="f-start" type="date" value="${esc(c?.start||"")}"></label>
+  <label class="field"><span>Leave</span><input id="f-end" type="date" value="${esc(c?.end||"")}"></label></div>
+  <div class="foot">${c?`<button class="danger" data-act="delCity">Delete trip</button>`:"<span></span>"}<div style="display:flex;gap:8px"><button class="btn soft" data-act="close">Cancel</button><button class="btn" data-act="saveCity">${c?"Save":"Add trip"}</button></div></div>`);
+}
+function pinSheet(k,preset={}){
+  const lab={eat:"Pin a restaurant",play:"Pin a spot",see:"Add a sight",events:"Add an event",games:"Pin a game"}[k];
+  sheet(`<h3>${lab}</h3>
+  <label class="field"><span>Name</span><input id="p-title" value="${esc(preset.title||"")}" autocomplete="off"></label>
+  ${["events","games"].includes(k)?`<label class="field"><span>When</span><input id="p-when" value="${esc(preset.when||"")}" placeholder="Sat Oct 10, 7:30pm"></label>`:""}
+  <label class="field"><span>Note for the family</span><textarea id="p-note" placeholder="Get the lobster roll. Book ahead.">${esc(preset.note||"")}</textarea></label>
+  <label class="field"><span>Link (optional)</span><input id="p-url" type="url" value="${esc(preset.url||"")}" placeholder="https://"></label>
+  <div class="foot"><span></span><div style="display:flex;gap:8px"><button class="btn soft" data-act="close">Cancel</button><button class="btn" data-act="savePin" data-k="${k}">Save pin</button></div></div>`);
+}
+
+/* ---------- Claude-powered lists ---------- */
+async function runAI(kind){
+  const c=city();if(!c||!S.ai||S.busy[kind])return;
+  S.busy[kind]=true;render();
+  const s=c.start||today(),e=c.end||s;
+  const geo=`"lat": number or null, "lng": number or null (approximate coordinates; null if unsure)`;
+  let prompt;
+  if(kind.startsWith("eat_")){const st=EAT_STYLES.find(x=>"eat_"+x.k===kind);
+    prompt=`You are a food-obsessed local. List 10 of ${st.q} in ${c.name}. Only include places you are confident are real and long-running. Reply with only a JSON array of objects: {"name": string, "kind": string (cuisine and price like "Seafood, $$$"), "why": string (at most 14 words, name a dish if you can), "area": string (neighborhood), ${geo}}.`}
+  else if(kind==="play")prompt=`List 10 of the best entertainment spots in ${c.name} for adults: live music venues, comedy clubs, theaters, rooftop and cocktail bars, and nightlife. Only well-established places. Reply with only a JSON array of objects: {"name": string, "kind": string (e.g. "Jazz club"), "why": string (at most 14 words), "area": string (neighborhood), ${geo}}.`;
+  else if(kind==="see")prompt=`You are a well-traveled local guide. List the 12 most popular and worthwhile things to see and do in ${c.name}: landmarks, museums, neighborhoods, outdoors, markets and local favorites. Reply with only a JSON array of objects: {"name": string, "why": string (at most 14 words, specific), "area": string (neighborhood), ${geo}}.`;
+  else prompt=`Which recurring annual festivals, seasonal events, holiday traditions and big yearly happenings usually take place in or near ${c.name} between ${fmt(s,{month:"long",day:"numeric"})} and ${fmt(e,{month:"long",day:"numeric"})}? Only events that recur every year and typically overlap that window. Up to 8. Reply with only a JSON array of objects: {"name": string, "typical_timing": string (e.g. "Usually the second weekend of October"), "why": string (at most 14 words)}. Reply [] if none.`;
+  try{
+    const items=await aiJSON(prompt);
+    if(!Array.isArray(items))throw{code:"invalid_json"};
+    setTimeout(()=>loadCity().catch(()=>{}),45000);setTimeout(()=>loadCity().catch(()=>{}),90000);
+    await store.setLive(c.id,kind,{items:items.slice(0,15).map(x=>({name:String(x.name||""),kind:String(x.kind||""),why:String(x.why||""),area:String(x.area||""),typical_timing:String(x.typical_timing||""),lat:num(x.lat),lng:num(x.lng)})).filter(x=>x.name),at:Date.now()});
+  }catch(err){
+    toast({rate_limited:"Too many requests. Try again in a minute.",invalid_json:"That list didn't come through. Try again."}[err?.code]||"Couldn't load the list. Try again.");
+  }finally{S.busy[kind]=false;render()}
+}
+
+/* ---------- Interaction ---------- */
+async function addPin(c,data){
+  const id=newId(),full={note:"",url:"",when:"",status:"want",...data,byName:API.name,at:Date.now()};
+  await store.setPin(c.id,id,full);
+  if(!S.places&&!hasGeo(full)&&["eat","play","see"].includes(full.cat))locate([{id,title:full.title}]);
+}
+document.addEventListener("click",async ev=>{
+  const el=ev.target.closest("[data-act]");if(!el)return;
+  const a=el.dataset.act,c=city();
+  if(a==="close"){if(el.classList.contains("scrim")&&ev.target!==el)return;closeSheet();return}
+  if(a==="home")return closeCity();
+  if(a==="open")return openCity(el.dataset.id);
+  if(a==="addCity")return citySheet(null);
+  if(a==="editCity")return citySheet(c);
+  if(a==="tab"){S.tab=el.dataset.k;render();window.scrollTo({top:0});return}
+  if(a==="eatStyle"){S.eatStyle=el.dataset.k;render();return}
+  if(a==="mapFilter"){S.mapFilter=el.dataset.k;S.mapSel=null;render();return}
+  if(a==="mapSel"){S.mapSel=S.mapSel===el.dataset.id?null:el.dataset.id;render();return}
+  if(a==="locate"){S.busy.locate=true;render();await locate(S.pins.filter(p=>!hasGeo(p)&&!p.geoTried).slice(0,25));S.busy.locate=false;render();return}
+  if(a==="saveCity"){
+    const name=$("#f-name").value.trim(),start=$("#f-start").value,end=$("#f-end").value;
+    if(!name){$("#f-name").focus();return}
+    if(start&&end&&end<start){toast("Leave date is before arrive date.");return}
+    try{
+      if(c&&S.cityId)await store.updateCity(c.id,{name,start,end});
+      else{const id=newId();await store.setCity(id,{name,start,end,by:API.name,at:Date.now()});closeSheet();openCity(id);return}
+      closeSheet();
+    }catch{toast("Couldn't save. You may need edit access.")}
     return;
   }
-  const byDay = {};
-  pins.forEach(p=>{ const d = p.tDate || p.evDate || 'Unscheduled'; (byDay[d] = byDay[d]||[]).push(p); });
-  const days = Object.keys(byDay).sort();
-  let html = '';
-  days.forEach(d=>{
-    const label = d==='Unscheduled' ? 'Unscheduled' : new Date(d+'T00:00:00').toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric'});
-    html += `<div class="day-heading">${label}</div>`;
-    byDay[d].sort((a,b)=> (a.tTime||a.evTime||'').localeCompare(b.tTime||b.evTime||'')).forEach(p=>{
-      const time = p.tTime || p.evTime;
-      const tz = p.tTz ? ` ${p.tTz.split('/').pop().replace('_',' ')}` : '';
-      const gcalHref = gcalLink(p);
-      html += `
-      <div class="card" data-pid="${p.id}">
-        <div class="card-row">
-          <div>
-            <h3>${esc(p.title)}</h3>
-            <div class="sub">${time?fmtTime12(time)+tz:''}${p.venue?' · '+esc(p.venue):''}</div>
-            ${p.tNote ? `<div class="sub">${esc(p.tNote)}</div>` : ''}
-            <div class="chipline"><span class="chip cat" style="background:${(CAT[p.category]||CAT.see).color}">${(CAT[p.category]||CAT.see).icon} ${(CAT[p.category]||CAT.see).label}</span></div>
-          </div>
-        </div>
-        <div class="btnrow">
-          <a class="btn small ghost" href="${mapsDirUrl(p)}" target="_blank" rel="noopener">Directions</a>
-          <button class="btn small ghost" data-act="ics" data-pid="${p.id}">Add to calendar</button>
-          <a class="btn small ghost" href="${gcalHref}" target="_blank" rel="noopener">Google Cal</a>
-          <button class="btn small ghost" data-act="edit" data-pid="${p.id}">Edit</button>
-        </div>
-      </div>`;
-    });
-  });
-  body.innerHTML = html + `<div class="muted" style="margin-top:14px;">“Add to calendar” downloads a calendar file with your reminders. “Google Cal” opens Google Calendar instead.</div>`;
-  wirePinCardActions(body);
-}
-/* ---------- Calendar file (.ics), built in the browser ---------- */
-function zonedToUTC(dateStr, timeStr, tz){
-  const [y, mo, d] = dateStr.split('-').map(Number);
-  const [h, mi] = (timeStr || '00:00').split(':').map(Number);
-  const target = Date.UTC(y, mo-1, d, h, mi);
-  let guess = target;
-  for (let i = 0; i < 3; i++){
-    const fmt = new Intl.DateTimeFormat('en-US', { timeZone: tz || 'UTC', hour12:false, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
-    const parts = Object.fromEntries(fmt.formatToParts(new Date(guess)).map(p => [p.type, p.value]));
-    const seen = Date.UTC(+parts.year, +parts.month-1, +parts.day, parts.hour === '24' ? 0 : +parts.hour, +parts.minute);
-    const diff = target - seen;
-    if (diff === 0) break;
-    guess += diff;
+  if(a==="delCity"){if(!confirm(`Delete the ${c.name} trip?`))return;try{await store.delCity(c.id);closeSheet();closeCity()}catch{toast("Couldn't delete.")}return}
+  if(a==="addPin")return pinSheet(el.dataset.k);
+  if(a==="savePin"){
+    const title=$("#p-title").value.trim();if(!title){$("#p-title").focus();return}
+    let url=$("#p-url").value.trim();if(url&&!/^https?:\/\//i.test(url))url="https://"+url;
+    try{await addPin(c,{cat:el.dataset.k,title,note:$("#p-note").value.trim(),url,when:$("#p-when")?.value.trim()||""});closeSheet();toast("Pinned")}catch{toast("Couldn't save. You may need edit access.")}
+    return;
   }
-  return new Date(guess);
-}
-const icsDate = dt => dt.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-const icsEsc = s => String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
-function buildICS(pin, city){
-  const dateStr = pin.tDate || pin.evDate;
-  if (!dateStr) return null;
-  const start = zonedToUTC(dateStr, pin.tTime || pin.evTime || '00:00', pin.tTz || 'America/Chicago');
-  const end = new Date(start.getTime() + 2*60*60*1000);
-  const mins = String(pin.remind || '1440,180').split(',').map(s => parseInt(s.trim(), 10)).filter(n => !Number.isNaN(n));
-  const lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Jetset Johnsons//EN','CALSCALE:GREGORIAN','BEGIN:VEVENT',
-    `UID:${pin.id}@jetsetjohnsons`, `DTSTAMP:${icsDate(new Date())}`, `DTSTART:${icsDate(start)}`, `DTEND:${icsDate(end)}`,
-    `SUMMARY:${icsEsc(pin.title)}`, `LOCATION:${icsEsc(pin.venue || city.name)}`, `DESCRIPTION:${icsEsc(pin.tNote || pin.note || '')}`];
-  mins.forEach(m => lines.push('BEGIN:VALARM','ACTION:DISPLAY',`DESCRIPTION:${icsEsc(pin.title)}`,`TRIGGER:-PT${m}M`,'END:VALARM'));
-  lines.push('END:VEVENT','END:VCALENDAR');
-  return lines.join('\r\n');
-}
-function downloadICS(pin){
-  const ics = buildICS(pin, CUR_CITY);
-  if (!ics){ toast('Add a date to this plan first'); return; }
-  const url = URL.createObjectURL(new Blob([ics], { type:'text/calendar;charset=utf-8' }));
-  const a = document.createElement('a');
-  a.href = url; a.download = (pin.title || 'event').replace(/[^a-z0-9]+/gi, '-') + '.ics';
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=> URL.revokeObjectURL(url), 4000);
-}
-
-function gcalLink(p){
-  const date = p.tDate || p.evDate; const time = p.tTime || p.evTime || '00:00';
-  if (!date) return '#';
-  const start = date.replace(/-/g,'') + 'T' + time.replace(':','') + '00';
-  const [h,m] = time.split(':').map(Number);
-  const endH = (h+2)%24; const end = date.replace(/-/g,'') + 'T' + String(endH).padStart(2,'0') + String(m).padStart(2,'0') + '00';
-  const params = new URLSearchParams({
-    action:'TEMPLATE', text:p.title||'', dates:`${start}/${end}`,
-    details:p.tNote||p.note||'', location:p.venue||CUR_CITY.name, ctz:p.tTz||'America/Chicago',
-  });
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
-}
-
-/* ---------- Free search links (stand-in for the AI finders in this version) ---------- */
-function mapsSearchUrl(q){ return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q); }
-function searchChips(items){
-  return `<div class="link-row">${items.map(([label, q]) =>
-    `<a class="link-chip" href="${mapsSearchUrl(q + ' in ' + CUR_CITY.name + ' ' + CUR_CITY.state)}" target="_blank" rel="noopener">${esc(label)}</a>`).join('')}</div>`;
-}
-
-/* ---------- Generic AI finder (only used when AI is available) ---------- */
-function finderSection(catKey, chips, opts){
-  return `
-    <div class="chip-row" id="${catKey}Chips">
-      ${chips.map((c,i)=>`<button class="vibe-chip ${i===0?'active':''}" data-vibe="${esc(c)}">${esc(c)}</button>`).join('')}
-    </div>
-    <div id="${catKey}Results"></div>
-  `;
-}
-async function runFinder(catKey, vibe, city, promptFn, resultsEl){
-  resultsEl.innerHTML = `<div class="spinner"></div>`;
-  try{
-    const { json } = await aiJSON(promptFn(vibe, city), 'Respond with ONLY JSON: {"items":[{"name":"","note":""}]}. 5-8 real, specific suggestions. No prose, no markdown fences.');
-    const items = (json && json.items) || [];
-    if (!items.length){ resultsEl.innerHTML = `<div class="muted">No suggestions came back — try another vibe.</div>`; return; }
-    resultsEl.innerHTML = items.map((it,i)=>`
-      <div class="card">
-        <h3>${esc(it.name)}</h3>
-        ${it.note?`<div class="sub">${esc(it.note)}</div>`:''}
-        <div class="btnrow">
-          <a class="btn small ghost" href="https://www.google.com/search?q=${encodeURIComponent(it.name+' '+city.name)}" target="_blank" rel="noopener">About</a>
-          <button class="btn small" data-pin-idx="${i}">Pin it</button>
-        </div>
-      </div>`).join('');
-    resultsEl.querySelectorAll('[data-pin-idx]').forEach(b=>{
-      b.onclick = async ()=>{
-        const it = items[b.dataset.pinIdx];
-        const pin = await putPin(city.id, 'new', {category:catKey, title:it.name, note:it.note||'', byName:STATE.name, status:'want'});
-        city.pins[pin.id] = pin;
-        toast('Pinned!'); b.textContent='Pinned ✓'; b.disabled=true;
-      };
-    });
-  }catch(e){ resultsEl.innerHTML = `<div class="muted">Couldn't get suggestions: ${esc(e.message)}</div>`; }
-}
-function wireFinder(catKey, promptFn){
-  const chipRow = document.getElementById(catKey+'Chips');
-  const resultsEl = document.getElementById(catKey+'Results');
-  const go = vibe => runFinder(catKey, vibe, CUR_CITY, promptFn, resultsEl);
-  chipRow.querySelectorAll('.vibe-chip').forEach(c=>{
-    c.onclick = ()=>{ chipRow.querySelectorAll('.vibe-chip').forEach(x=>x.classList.remove('active')); c.classList.add('active'); go(c.dataset.vibe); };
-  });
-  go(chipRow.querySelector('.vibe-chip').dataset.vibe);
-}
-
-/* ---------- Eat tab ---------- */
-function tabEat(body){
-  const pins = Object.values(CUR_CITY.pins||{}).filter(p=>p.category==='eat');
-  const finder = STATE.config.hasAI
-    ? finderSection('eat', ['Must-try','Local classics','Date night','Brunch','Casual & cheap'])
-    : searchChips([['Must-try','best restaurants'],['Local classics','classic local restaurants'],['Date night','date night restaurants'],['Brunch','brunch'],['Casual & cheap','cheap eats']])
-      + `<div class="muted">These open Google Maps. Found somewhere good? Tap “Add a restaurant” to pin it for the whole family.</div>`;
-  body.innerHTML = `
-    <button class="btn block" id="addPinBtn" style="margin-bottom:12px;">+ Add a restaurant</button>
-    ${pins.length?`<div class="section-title">Pinned</div>${pins.map(p=>pinCard(p)).join('')}`:''}
-    <div class="section-title">Find restaurants</div>
-    ${finder}
-  `;
-  wirePinCardActions(body);
-  document.getElementById('addPinBtn').onclick = ()=> openPinSheet({category:'eat'});
-  if (STATE.config.hasAI) wireFinder('eat', (vibe, city)=> `Suggest restaurants in ${city.name}, ${city.state} matching the vibe "${vibe}". Give real, specific restaurant names.`);
-}
-
-/* ---------- Play tab ---------- */
-function tabPlay(body){
-  const pins = Object.values(CUR_CITY.pins||{}).filter(p=>p.category==='play');
-  const finder = STATE.config.hasAI
-    ? finderSection('play', ['Family fun','Nightlife','Outdoors','Live shows','Shopping'])
-    : searchChips([['Family fun','family fun activities'],['Nightlife','nightlife'],['Outdoors','outdoor activities'],['Live shows','live shows and theater'],['Shopping','shopping']])
-      + `<div class="muted">These open Google Maps. Found something fun? Tap “Add a place” to pin it for the whole family.</div>`;
-  body.innerHTML = `
-    <button class="btn block" id="addPinBtn" style="margin-bottom:12px;">+ Add a place</button>
-    ${pins.length?`<div class="section-title">Pinned</div>${pins.map(p=>pinCard(p)).join('')}`:''}
-    <div class="section-title">Find things to do</div>
-    ${finder}
-  `;
-  wirePinCardActions(body);
-  document.getElementById('addPinBtn').onclick = ()=> openPinSheet({category:'play'});
-  if (STATE.config.hasAI) wireFinder('play', (vibe, city)=> `Suggest entertainment/activities in ${city.name}, ${city.state} matching the vibe "${vibe}". Give real, specific place or venue names.`);
-}
-
-/* ---------- Explore tab ---------- */
-function tabExplore(body){
-  const pins = Object.values(CUR_CITY.pins||{}).filter(p=>p.category==='see');
-  const list = (CUR_CITY.live && CUR_CITY.live.see && CUR_CITY.live.see.items) || [];
-  const empty = STATE.config.hasAI
-    ? `<button class="btn" id="genIdeas">Generate ideas</button>`
-    : searchChips([['Top things to do','top things to do'],['Attractions','tourist attractions'],['Parks','parks'],['Museums','museums']]);
-  body.innerHTML = `
-    <button class="btn block" id="addPinBtn" style="margin-bottom:12px;">+ Add a place</button>
-    ${pins.length?`<div class="section-title">Pinned</div>${pins.map(p=>pinCard(p)).join('')}`:''}
-    <div class="section-title">Popular things to do</div>
-    <div id="exploreList">${list.length ? list.map((it,i)=>exploreCard(it,i)).join('') : empty}</div>
-  `;
-  wirePinCardActions(body);
-  document.getElementById('addPinBtn').onclick = ()=> openPinSheet({category:'see'});
-  const gi = document.getElementById('genIdeas');
-  if (gi) gi.onclick = async ()=>{
-    const el = document.getElementById('exploreList'); el.innerHTML = `<div class="spinner"></div>`;
-    try{
-      const { json } = await aiJSON(
-        `List 12 popular things to do in ${CUR_CITY.name}, ${CUR_CITY.state} for visitors. Mix museums, landmarks, parks, neighborhoods, markets, and experiences.`,
-        'Respond with ONLY JSON: {"items":[{"name":"","type":"museum|landmark|park|water|neighborhood|market|experience","blurb":""}]}, exactly 12 items. No prose, no fences.'
-      );
-      const items = (json && json.items) || [];
-      await putLive(CUR_CITY.id, 'see', items);
-      CUR_CITY.live.see = {items};
-      renderTab('explore');
-    }catch(e){ el.innerHTML = `<div class="muted">Couldn't generate ideas: ${esc(e.message)}</div>`; }
-  };
-  body.querySelectorAll('[data-explore-pin]').forEach(b=>{
-    b.onclick = async ()=>{
-      const it = list[b.dataset.exploreIdx];
-      const pin = await putPin(CUR_CITY.id, 'new', {category:'see', title:it.name, note:it.blurb||'', byName:STATE.name, status:'want'});
-      CUR_CITY.pins[pin.id] = pin;
-      toast('Pinned!'); b.textContent='Pinned ✓'; b.disabled = true;
-    };
-  });
-}
-function exploreCard(it,i){
-  const icon = COVER_ICON[it.type] || '✨';
-  const about = it.website || `https://www.google.com/search?q=${encodeURIComponent(it.name+' '+CUR_CITY.name)}`;
-  return `<div class="card">
-    <div class="card-row">
-      <div class="cover-ill" style="background:${gradientFor(it.name+i)}">${icon}</div>
-      <div style="flex:1;">
-        <h3>${esc(it.name)}</h3>
-        ${it.blurb?`<div class="sub">${esc(it.blurb)}</div>`:''}
-      </div>
-    </div>
-    <div class="btnrow">
-      <a class="btn small ghost" href="https://www.google.com/search?q=${encodeURIComponent(it.name)}&tbm=isch" target="_blank" rel="noopener">Photos</a>
-      <a class="btn small ghost" href="${about}" target="_blank" rel="noopener">About</a>
-      <a class="btn small ghost" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(it.name+' '+CUR_CITY.name)}" target="_blank" rel="noopener">Directions</a>
-      <button class="btn small" data-explore-pin data-explore-idx="${i}">Pin</button>
-    </div>
-  </div>`;
-}
-
-/* ---------- Events tab ---------- */
-function tabEvents(body){
-  const live = CUR_CITY.live || {};
-  const ev = (live.events && live.events.items) || [];
-  const trad = (live.traditions && live.traditions.items) || [];
-  const ai = STATE.config.hasAI;
-  const q = encodeURIComponent(`${CUR_CITY.name} ${CUR_CITY.state}`);
-  body.innerHTML = `
-    <button class="btn block" id="addEventBtn" style="margin-bottom:12px;">+ Add an event we're going to</button>
-    <div class="link-row">
-      <a class="link-chip" href="https://www.google.com/search?q=events+in+${q}" target="_blank" rel="noopener">All events</a>
-      <a class="link-chip" href="https://www.google.com/search?q=concerts+in+${q}" target="_blank" rel="noopener">Concerts</a>
-      <a class="link-chip" href="https://www.google.com/search?q=festivals+in+${q}" target="_blank" rel="noopener">Festivals</a>
-      <a class="link-chip" href="https://www.ticketmaster.com/search?q=${q}" target="_blank" rel="noopener">Ticketmaster</a>
-    </div>
-    ${(ev.length || ai) ? `
-      <div class="section-title">Confirmed for your dates</div>
-      <div id="evList">${ev.length ? ev.map(eventCard).join('') : `<div class="muted">Nothing confirmed yet.</div>`}</div>
-      ${ai ? `<button class="btn ghost block" id="loadEvents" style="margin-top:8px;">Search for events</button>` : ''}` : ''}
-    ${(trad.length || ai) ? `
-      <div class="section-title">Yearly traditions around then</div>
-      <div id="tradList">${trad.length ? trad.map(t=>`<div class="card"><h3>${esc(t.name)}</h3><div class="sub">${esc(t.blurb||'')}</div></div>`).join('') : `<button class="btn ghost block" id="loadTrad">Find traditions</button>`}</div>
-      <div class="muted" style="margin-top:6px;">Traditions repeat yearly — always confirm exact dates before you go.</div>` : ''}
-  `;
-  document.getElementById('addEventBtn').onclick = ()=> openPlansSheet({category:'events', title:'', venue:'', evDate:CUR_CITY.startDate, evTime:''});
-  const le = document.getElementById('loadEvents');
-  if (le) le.onclick = async ()=>{
-    document.getElementById('evList').innerHTML = `<div class="spinner"></div>`;
-    try{ const r = await refreshLive(CUR_CITY.id, 'events'); CUR_CITY.live.events = r; renderTab('events'); }
-    catch(e){ toast(e.message); renderTab('events'); }
-  };
-  body.querySelectorAll('[data-ev-tix]').forEach(b=> b.onclick = ()=>{
-    const item = ev[b.dataset.evIdx];
-    openPlansSheet({category:'events', title:item.name, venue:item.venue, evDate:item.date, evTime:item.time, url:item.url});
-  });
-  const lt = document.getElementById('loadTrad');
-  if (lt) lt.onclick = async ()=>{
-    document.getElementById('tradList').innerHTML = `<div class="spinner"></div>`;
-    try{
-      const { json } = await aiJSON(
-        `What yearly traditions, festivals, or seasonal happenings usually occur in ${CUR_CITY.name}, ${CUR_CITY.state} around ${CUR_CITY.startDate} to ${CUR_CITY.endDate} (any year)? `,
-        'Respond with ONLY JSON: {"items":[{"name":"","blurb":""}]}, up to 6 items. No prose, no fences.'
-      );
-      const items = (json && json.items) || [];
-      await putLive(CUR_CITY.id, 'traditions', items);
-      CUR_CITY.live.traditions = {items};
-      renderTab('events');
-    }catch(e){ toast(e.message); renderTab('events'); }
-  };
-}
-function eventCard(item, i){
-  const when = item.date ? new Date(item.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
-  return `<div class="card">
-    <h3>${esc(item.name)}</h3>
-    <div class="sub">${when}${item.time?' · '+fmtTime12(item.time):''}${item.venue?' · '+esc(item.venue):''}</div>
-    <div class="btnrow">
-      ${item.url?`<a class="btn small ghost" href="${item.url}" target="_blank" rel="noopener">Details</a>`:''}
-      <button class="btn small" data-ev-tix data-ev-idx="${i}">We have tickets</button>
-    </div>
-  </div>`;
-}
-
-/* ---------- Sports tab ---------- */
-const METROS = [
-  {aliases:['boston','cambridge'], teams:[{league:'NFL',name:'Patriots'},{league:'NBA',name:'Celtics'},{league:'NHL',name:'Bruins'},{league:'MLB',name:'Red Sox'}]},
-  {aliases:['salem','peabody','beverly'], teams:[{league:'NFL',name:'Patriots'},{league:'NBA',name:'Celtics'},{league:'NHL',name:'Bruins'},{league:'MLB',name:'Red Sox'}]},
-  {aliases:['new york','brooklyn','queens','manhattan'], teams:[{league:'NFL',name:'Giants'},{league:'NFL',name:'Jets'},{league:'NBA',name:'Knicks'},{league:'NBA',name:'Nets'},{league:'NHL',name:'Rangers'},{league:'MLB',name:'Yankees'},{league:'MLB',name:'Mets'}]},
-  {aliases:['dallas','fort worth','arlington','frisco','roanoke'], teams:[{league:'NFL',name:'Cowboys'},{league:'NBA',name:'Mavericks'},{league:'NHL',name:'Stars'},{league:'MLB',name:'Rangers'}]},
-  {aliases:['decatur'], teams:[{league:'NFL',name:'Cowboys'},{league:'NBA',name:'Mavericks'},{league:'NHL',name:'Stars'},{league:'MLB',name:'Rangers'}]},
-  {aliases:['chicago'], teams:[{league:'NFL',name:'Bears'},{league:'NBA',name:'Bulls'},{league:'NHL',name:'Blackhawks'},{league:'MLB',name:'Cubs'},{league:'MLB',name:'White Sox'}]},
-  {aliases:['los angeles','la','hollywood','santa monica'], teams:[{league:'NFL',name:'Rams'},{league:'NFL',name:'Chargers'},{league:'NBA',name:'Lakers'},{league:'NBA',name:'Clippers'},{league:'NHL',name:'Kings'},{league:'MLB',name:'Dodgers'},{league:'MLB',name:'Angels'}]},
-  {aliases:['san francisco','oakland','sf'], teams:[{league:'NFL',name:'49ers'},{league:'NBA',name:'Warriors'},{league:'NHL',name:'Sharks'},{league:'MLB',name:'Giants'},{league:'MLB',name:'Athletics'}]},
-  {aliases:['philadelphia','philly'], teams:[{league:'NFL',name:'Eagles'},{league:'NBA',name:'76ers'},{league:'NHL',name:'Flyers'},{league:'MLB',name:'Phillies'}]},
-  {aliases:['houston'], teams:[{league:'NFL',name:'Texans'},{league:'NBA',name:'Rockets'},{league:'MLB',name:'Astros'}]},
-  {aliases:['miami'], teams:[{league:'NFL',name:'Dolphins'},{league:'NBA',name:'Heat'},{league:'NHL',name:'Panthers'},{league:'MLB',name:'Marlins'}]},
-  {aliases:['atlanta'], teams:[{league:'NFL',name:'Falcons'},{league:'NBA',name:'Hawks'},{league:'MLB',name:'Braves'}]},
-  {aliases:['seattle'], teams:[{league:'NFL',name:'Seahawks'},{league:'NBA',name:'Storm (WNBA)'},{league:'NHL',name:'Kraken'},{league:'MLB',name:'Mariners'}]},
-  {aliases:['denver'], teams:[{league:'NFL',name:'Broncos'},{league:'NBA',name:'Nuggets'},{league:'NHL',name:'Avalanche'},{league:'MLB',name:'Rockies'}]},
-  {aliases:['phoenix','tempe','scottsdale'], teams:[{league:'NFL',name:'Cardinals'},{league:'NBA',name:'Suns'},{league:'NHL',name:'Coyotes'},{league:'MLB',name:'Diamondbacks'}]},
-  {aliases:['detroit'], teams:[{league:'NFL',name:'Lions'},{league:'NBA',name:'Pistons'},{league:'NHL',name:'Red Wings'},{league:'MLB',name:'Tigers'}]},
-  {aliases:['minneapolis','st paul','saint paul'], teams:[{league:'NFL',name:'Vikings'},{league:'NBA',name:'Timberwolves'},{league:'NHL',name:'Wild'},{league:'MLB',name:'Twins'}]},
-  {aliases:['washington','dc'], teams:[{league:'NFL',name:'Commanders'},{league:'NBA',name:'Wizards'},{league:'NHL',name:'Capitals'},{league:'MLB',name:'Nationals'}]},
-  {aliases:['baltimore'], teams:[{league:'NFL',name:'Ravens'},{league:'MLB',name:'Orioles'}]},
-  {aliases:['pittsburgh'], teams:[{league:'NFL',name:'Steelers'},{league:'NHL',name:'Penguins'},{league:'MLB',name:'Pirates'}]},
-  {aliases:['cleveland'], teams:[{league:'NFL',name:'Browns'},{league:'NBA',name:'Cavaliers'},{league:'MLB',name:'Guardians'}]},
-  {aliases:['cincinnati'], teams:[{league:'NFL',name:'Bengals'},{league:'MLB',name:'Reds'}]},
-  {aliases:['nashville'], teams:[{league:'NFL',name:'Titans'},{league:'NHL',name:'Predators'}]},
-  {aliases:['new orleans'], teams:[{league:'NFL',name:'Saints'},{league:'NBA',name:'Pelicans'}]},
-  {aliases:['san antonio'], teams:[{league:'NBA',name:'Spurs'}]},
-  {aliases:['austin'], teams:[{league:'MLS',name:'Austin FC'}]},
-  {aliases:['orlando'], teams:[{league:'NBA',name:'Magic'}]},
-  {aliases:['tampa','st petersburg'], teams:[{league:'NFL',name:'Buccaneers'},{league:'NHL',name:'Lightning'},{league:'MLB',name:'Rays'}]},
-  {aliases:['charlotte'], teams:[{league:'NFL',name:'Panthers'},{league:'NBA',name:'Hornets'}]},
-  {aliases:['indianapolis'], teams:[{league:'NFL',name:'Colts'},{league:'NBA',name:'Pacers'}]},
-  {aliases:['kansas city'], teams:[{league:'NFL',name:'Chiefs'},{league:'MLB',name:'Royals'}]},
-  {aliases:['las vegas'], teams:[{league:'NFL',name:'Raiders'},{league:'NHL',name:'Golden Knights'}]},
-  {aliases:['portland'], teams:[{league:'NBA',name:'Trail Blazers'}]},
-  {aliases:['sacramento'], teams:[{league:'NBA',name:'Kings'}]},
-  {aliases:['san diego'], teams:[{league:'MLB',name:'Padres'}]},
-  {aliases:['buffalo'], teams:[{league:'NFL',name:'Bills'},{league:'NHL',name:'Sabres'}]},
-  {aliases:['jacksonville'], teams:[{league:'NFL',name:'Jaguars'}]},
-  {aliases:['green bay'], teams:[{league:'NFL',name:'Packers'}]},
-  {aliases:['columbus'], teams:[{league:'NHL',name:'Blue Jackets'}]},
-  {aliases:['milwaukee'], teams:[{league:'NBA',name:'Bucks'},{league:'MLB',name:'Brewers'}]},
-  {aliases:['salt lake city'], teams:[{league:'NBA',name:'Jazz'}]},
-  {aliases:['st louis','saint louis'], teams:[{league:'NHL',name:'Blues'},{league:'MLB',name:'Cardinals'}]},
-];
-function seasonBadge(league, city){
-  const windows = {
-    NFL: [[9,1,10,2]], NBA: [[10,1,4,2]], NHL: [[10,1,4,2]], MLB: [[4,1,9,2]],
-  };
-  // crude month-based check against trip start month
-  const startMonth = new Date(city.startDate+'T00:00:00').getMonth()+1;
-  const w = windows[league];
-  if (!w) return '';
-  const [sm] = w[0];
-  const inSeason = league==='MLB' ? (startMonth>=4 && startMonth<=9) : (startMonth>=10 || startMonth<=2 || (league==='NFL' && startMonth===1));
-  return inSeason ? '<span class="chip">In season</span>' : '<span class="chip">Off-season</span>';
-}
-function tabSports(body){
-  const nameLc = CUR_CITY.name.toLowerCase();
-  const metro = METROS.find(m => m.aliases.some(a => nameLc.includes(a)));
-  const games = (CUR_CITY.live && CUR_CITY.live.games && CUR_CITY.live.games.items) || [];
-  body.innerHTML = `
-    ${metro ? `<div class="section-title">Home teams</div>` + metro.teams.map(t=>`
-      <div class="card">
-        <div class="card-row">
-          <div><h3>${esc(t.name)}</h3><div class="sub">${t.league}</div></div>
-          ${seasonBadge(t.league, CUR_CITY)}
-        </div>
-        <div class="btnrow">
-          <a class="btn small ghost" href="https://www.google.com/search?q=${encodeURIComponent(t.name+' schedule')}" target="_blank" rel="noopener">Schedule</a>
-          <a class="btn small ghost" href="https://www.google.com/search?q=${encodeURIComponent(t.name+' tickets')}" target="_blank" rel="noopener">Tickets</a>
-          <button class="btn small" data-pin-game data-league="${t.league}" data-team="${esc(t.name)}">Pin a game</button>
-        </div>
-      </div>`).join('') : `<div class="muted">No teams listed for ${esc(CUR_CITY.name)} yet.</div>`}
-
-    ${(games.length || STATE.config.hasAI) ? `<div class="section-title">Confirmed games</div>
-    <div id="gameList">${games.length ? games.map(gameCard).join('') : `<div class="muted">Nothing confirmed yet.</div>`}</div>
-    ${STATE.config.hasAI ? `<button class="btn ghost block" id="loadGames" style="margin-top:8px;">Search for games</button>` : ''}` : ''}
-  `;
-  const lg = document.getElementById('loadGames');
-  if (lg) lg.onclick = async ()=>{
-    document.getElementById('gameList').innerHTML = `<div class="spinner"></div>`;
-    try{ const r = await refreshLive(CUR_CITY.id, 'games'); CUR_CITY.live.games = r; renderTab('sports'); }
-    catch(e){ toast(e.message); renderTab('sports'); }
-  };
-  body.querySelectorAll('[data-pin-game]').forEach(b=> b.onclick = ()=>{
-    openPlansSheet({category:'games', title:`${b.dataset.team} game`, venue:'', evDate:CUR_CITY.startDate, evTime:''});
-  });
-  body.querySelectorAll('[data-game-tix]').forEach(b=> b.onclick = ()=>{
-    const g = games[b.dataset.gameIdx];
-    openPlansSheet({category:'games', title:g.matchup, venue:g.venue, evDate:g.date, evTime:g.time, url:g.url});
-  });
-}
-function gameCard(g,i){
-  const when = g.date ? new Date(g.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
-  return `<div class="card">
-    <h3>${esc(g.matchup)}</h3>
-    <div class="sub">${esc(g.league||'')} · ${when}${g.time?' · '+fmtTime12(g.time):''}${g.venue?' · '+esc(g.venue):''}</div>
-    <div class="btnrow">
-      ${g.url?`<a class="btn small ghost" href="${g.url}" target="_blank" rel="noopener">Details</a>`:''}
-      <button class="btn small" data-game-tix data-game-idx="${i}">We have tickets</button>
-    </div>
-  </div>`;
-}
-
-/* ---------- Map tab ---------- */
-function tabMap(body){
-  const pins = Object.values(CUR_CITY.pins||{});
-  const geoPins = pins.filter(p=>p.lat && p.lng);
-  const cats = ['eat','play','see','events','games'];
-  body.innerHTML = `
-    <div class="chip-row" id="mapFilters">${cats.map(c=>`<button class="vibe-chip active" data-cat="${c}">${CAT[c].icon} ${CAT[c].label}</button>`).join('')}</div>
-    <div class="card" style="padding:8px;"><svg id="mapSvg" viewBox="0 0 320 320" style="width:100%;height:auto;display:block;"></svg></div>
-    <div id="mapCardHost"></div>
-    ${pins.length ? `<button class="btn block" id="openAllMaps" style="margin-top:10px;">Open ${Math.min(pins.length,10)} stops in Google Maps</button>` : `<div class="muted">No pins yet — add some from the other tabs.</div>`}
-  `;
-  const svg = document.getElementById('mapSvg');
-  const W=320,H=320, pad=30;
-  let positions = {};
-  if (geoPins.length >= 2){
-    const lats = geoPins.map(p=>p.lat), lngs = geoPins.map(p=>p.lng);
-    const minLat=Math.min(...lats), maxLat=Math.max(...lats), minLng=Math.min(...lngs), maxLng=Math.max(...lngs);
-    const spanLat = (maxLat-minLat)||0.01, spanLng=(maxLng-minLng)||0.01;
-    pins.forEach(p=>{
-      if (p.lat && p.lng){
-        positions[p.id] = { x: pad + ((p.lng-minLng)/spanLng)*(W-2*pad), y: pad + (1-(p.lat-minLat)/spanLat)*(H-2*pad) };
-      } else {
-        const h = hashStr(p.id); positions[p.id] = { x: pad+(h%1000)/1000*(W-2*pad), y: pad+((h>>10)%1000)/1000*(H-2*pad) };
-      }
-    });
-  } else {
-    pins.forEach(p=>{ const h = hashStr(p.id); positions[p.id] = { x: pad+(h%1000)/1000*(W-2*pad), y: pad+((h>>10)%1000)/1000*(H-2*pad) }; });
+  if(a==="status"){const p=S.pins.find(x=>x.id===el.dataset.id);if(p)try{await store.updatePin(c.id,p.id,{status:p.status==="loved"?"want":"loved"})}catch{toast("Couldn't update.")}return}
+  if(a==="delPin"){const p=S.pins.find(x=>x.id===el.dataset.id);if(p&&confirm(`Remove ${p.title}?`))try{if(S.mapSel===p.id)S.mapSel=null;await store.delPin(c.id,p.id)}catch{toast("Couldn't remove.")}return}
+  if(a==="ai")return runAI(el.dataset.kind);
+  if(a==="refresh")return refreshLive(el.dataset.kind);
+  if(a==="newPhoto"){S.busy.photo=true;render();try{await API.req("POST",`/cities/${c.id}/photo`);await loadCities()}catch{toast("No other photos found.")}finally{S.busy.photo=false;render()}return}
+  if(a==="setupOpen")return setupSheet();
+  if(a==="saveSetup"){
+    const name=$("#s-name").value.trim(),code=($("#s-code")?.value||"").trim();
+    if(!name){$("#s-name").focus();return}
+    if(!code&&!API.fid){$("#s-code").focus();return}
+    if(code&&code.length<8){toast("Use a code that's at least 8 characters.");return}
+    API.name=name;LS.set("jj_name",name);
+    let fid;if(code){try{fid=await familyIdFor(code)}catch{toast("This browser can't hash the code. Use https.");return}}
+    closeSheet();lastCities="";start(fid);return;
   }
-  let svgHtml = `<rect x="0" y="0" width="${W}" height="${H}" rx="14" fill="var(--bg)"/>`;
-  svgHtml += `<text x="12" y="20" font-size="11" fill="var(--ink2)">N ↑</text>`;
-  svgHtml += `<line x1="14" y1="${H-16}" x2="64" y2="${H-16}" stroke="var(--ink2)" stroke-width="2"/><text x="14" y="${H-22}" font-size="9" fill="var(--ink2)">${geoPins.length>=2?'approx. scale':'positions approximate'}</text>`;
-  pins.forEach(p=>{
-    const pos = positions[p.id]; const color = (CAT[p.category]||CAT.see).color;
-    svgHtml += `<circle cx="${pos.x}" cy="${pos.y}" r="7" fill="${color}" stroke="white" stroke-width="2" class="map-pin" data-pid="${p.id}" data-cat="${p.category}" style="cursor:pointer;"/>`;
-  });
-  svg.innerHTML = svgHtml;
-  svg.querySelectorAll('.map-pin').forEach(el=>{
-    el.addEventListener('click', ()=>{
-      const p = CUR_CITY.pins[el.dataset.pid];
-      document.getElementById('mapCardHost').innerHTML = pinCard(p);
-      wirePinCardActions(document.getElementById('mapCardHost'));
-    });
-  });
-  document.getElementById('mapFilters').querySelectorAll('.vibe-chip').forEach(chip=>{
-    chip.onclick = ()=>{
-      chip.classList.toggle('active');
-      const activeCats = new Set([...document.querySelectorAll('#mapFilters .vibe-chip.active')].map(c=>c.dataset.cat));
-      svg.querySelectorAll('.map-pin').forEach(el=> el.style.display = activeCats.has(el.dataset.cat) ? '' : 'none');
-    };
-  });
-  if (document.getElementById('openAllMaps')) document.getElementById('openAllMaps').onclick = ()=>{
-    const stops = pins.slice(0,10).map(p=> p.lat&&p.lng ? `${p.lat},${p.lng}` : encodeURIComponent(`${p.title} ${CUR_CITY.name}`));
-    const dest = stops[stops.length-1]; const wps = stops.slice(0,-1).join('|');
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=${dest}${wps?'&waypoints='+wps:''}`, '_blank');
-  };
-}
-
-/* =========================================================================
-   Pin sheet (generic edit) & Plans sheet (booking details)
-   ========================================================================= */
-function openPinSheet(pin){
-  const isNew = !pin.id;
-  const cat = CAT[pin.category] || CAT.see;
-  openSheet(`
-    <h2>${isNew ? 'Add to ' + cat.label : 'Edit pin'}</h2>
-    <div class="field"><label>Name</label><input type="text" id="p-title" value="${escAttr(pin.title)}"></div>
-    <div class="field"><label>Note</label><textarea id="p-note">${esc(pin.note||'')}</textarea></div>
-    <div class="field"><label>Link (optional)</label><input type="url" id="p-url" value="${escAttr(pin.url||'')}"></div>
-    <div class="field"><label>Status</label>
-      <select id="p-status"><option value="want" ${pin.status!=='loved'?'selected':''}>Want</option><option value="loved" ${pin.status==='loved'?'selected':''}>Loved</option></select>
-    </div>
-    <div class="sheet-actions"><button class="btn ghost" id="p-cancel">Cancel</button><button class="btn" id="p-save">Save</button></div>
-  `);
-  document.getElementById('p-cancel').onclick = closeSheet;
-  document.getElementById('p-save').onclick = async ()=>{
-    const body = { title:document.getElementById('p-title').value.trim(), note:document.getElementById('p-note').value.trim(), url:document.getElementById('p-url').value.trim(), status:document.getElementById('p-status').value };
-    if (!body.title){ toast('Give it a name first'); return; }
-    if (isNew){
-      const saved = await putPin(CUR_CITY.id, 'new', Object.assign({ category: pin.category || 'see', byName: STATE.name }, body));
-      CUR_CITY.pins[saved.id] = saved; toast('Pinned!');
-    } else {
-      CUR_CITY.pins[pin.id] = await patchPin(CUR_CITY.id, pin.id, body);
-    }
-    updatePills(); closeSheet(); renderTab(currentRoute().tab);
-  };
-}
-
-function openPlansSheet(pin){
-  const isNew = !pin.id;
-  openSheet(`
-    <h2>${isNew?'We have tickets':'Reservation details'}</h2>
-    <div class="field"><label>Title</label><input type="text" id="pl-title" value="${escAttr(pin.title||'')}"></div>
-    <div class="field"><label>Venue</label><input type="text" id="pl-venue" value="${escAttr(pin.venue||'')}"></div>
-    <div class="field-grid">
-      <div class="field"><label>Date</label><input type="date" id="pl-date" value="${pin.tDate||pin.evDate||CUR_CITY.startDate||''}"></div>
-      <div class="field"><label>Time</label><input type="time" id="pl-time" value="${pin.tTime||pin.evTime||''}"></div>
-    </div>
-    <div class="field"><label>Time zone</label>
-      <select id="pl-tz">
-        ${['America/New_York','America/Chicago','America/Denver','America/Los_Angeles','America/Anchorage','Pacific/Honolulu'].map(tz=>`<option value="${tz}" ${(pin.tTz||guessTz())===tz?'selected':''}>${tz.replace('_',' ')}</option>`).join('')}
-      </select>
-    </div>
-    <div class="field"><label>Tickets / confirmation note</label><textarea id="pl-note">${esc(pin.tNote||'')}</textarea></div>
-    <div class="field"><label>Reminders</label>
-      <div class="chipline">
-        ${[['10080','1 week'],['1440','1 day'],['180','3 hrs'],['60','1 hr']].map(([v,l])=>`<label class="chip" style="cursor:pointer;"><input type="checkbox" class="pl-remind" value="${v}" ${String(pin.remind||'1440,180').split(',').includes(v)?'checked':''} style="margin-right:4px;">${l}</label>`).join('')}
-      </div>
-    </div>
-    <div class="sheet-actions"><button class="btn ghost" id="pl-cancel">Cancel</button><button class="btn" id="pl-save">Save</button></div>
-    ${isNew ? '' : `<button class="btn ghost block" id="pl-delete" style="margin-top:10px;">Remove this plan</button>`}
-  `);
-  document.getElementById('pl-cancel').onclick = closeSheet;
-  const del = document.getElementById('pl-delete');
-  if (del) del.onclick = async ()=>{
-    if (!confirm('Remove this plan and its pin?')) return;
-    await delPin(CUR_CITY.id, pin.id); delete CUR_CITY.pins[pin.id];
-    updatePills(); closeSheet(); renderTab(currentRoute().tab);
-  };
-  document.getElementById('pl-save').onclick = async ()=>{
-    const remind = [...document.querySelectorAll('.pl-remind:checked')].map(c=>c.value).join(',') || '1440,180';
-    const body = {
-      category: pin.category || 'events', title: document.getElementById('pl-title').value.trim(),
-      venue: document.getElementById('pl-venue').value.trim(), tickets:true,
-      tDate: document.getElementById('pl-date').value, tTime: document.getElementById('pl-time').value,
-      tTz: document.getElementById('pl-tz').value, tNote: document.getElementById('pl-note').value.trim(),
-      remind, byName: STATE.name, status: pin.status || 'want', url: pin.url||'',
-    };
-    const pid = pin.id || 'new';
-    const saved = await putPin(CUR_CITY.id, pid, body);
-    CUR_CITY.pins[saved.id] = saved;
-    updatePills(); closeSheet(); toast('Saved to Plans'); renderTab(currentRoute().tab);
-  };
-}
-function guessTz(){ try{ return Intl.DateTimeFormat().resolvedOptions().timeZone; }catch{ return 'America/Chicago'; } }
-
-/* =========================================================================
-   Utils
-   ========================================================================= */
-function esc(s){ return String(s==null?'':s).replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
-function escAttr(s){ return esc(s).replace(/"/g,'&quot;'); }
-
-/* =========================================================================
-   Render dispatcher & boot
-   ========================================================================= */
-function render(){
-  if (!STATE.familyId){ renderGate(); return; }
-  const r = currentRoute();
-  if (r.view === 'city') renderCityPage(r.id, r.tab);
-  else renderHome();
-}
-
-function startApp(){
-  applyTheme();
-  document.getElementById('gate').classList.add('hidden');
-  document.getElementById('app').classList.remove('hidden');
-  render();
-}
-
-// Surface failed saves (e.g. Firestore rules not published) instead of failing silently.
-window.addEventListener('unhandledrejection', e => {
-  const r = e.reason; if (!r) return;
-  toast(friendlyError(r));
+  if(a==="cancelCreate"){setupSheet();return}
+  if(a==="createFamily"){
+    el.disabled=true;el.textContent="Creating…";
+    try{await createFamily(PENDING_FID);closeSheet();enterFamily(PENDING_FID)}
+    catch(e){el.disabled=false;el.textContent="Create family space";toast(errText(e))}
+    return;
+  }
+  if(a==="pinTeam")return pinSheet("games",{title:el.dataset.t+" home game"});
+  if(a==="pinFrom"){
+    const src=el.dataset.src;let data;
+    const day=it=>fmt(it.date,{weekday:"short",month:"short",day:"numeric"})+(it.time?", "+it.time:"");
+    if(src==="annual"){const it=S.live.annual.items[+el.dataset.i];data={cat:"events",title:it.name,when:it.typical_timing,note:it.why}}
+    else if(src==="events"){const it=S.live.events.items.find(e=>e.name+e.date===el.dataset.id);data={cat:"events",title:it.name,when:day(it),note:it.venue||"",url:it.url||""}}
+    else if(src==="games"){const it=S.live.games.items.find(e=>e.matchup+e.date===el.dataset.id);data={cat:"games",title:it.matchup,when:day(it),note:[it.league,it.venue].filter(Boolean).join(", "),url:it.url||""}}
+    else{const it=S.live[src].items[+el.dataset.i],cat=src.startsWith("eat")?"eat":src;data={cat,title:it.name,note:[it.kind,it.why].filter(Boolean).join(". ")};
+      for(const f of ["placeId","website","rating","mapsUrl","photoCredit","hasPhoto","menuUrl","menuTried","enriched"])if(it[f]!==undefined&&it[f]!==null&&it[f]!=="")data[f]=it[f];if(it.lat!==null&&it.lng!==null&&typeof it.lat==="number"){data.lat=it.lat;data.lng=it.lng;data.geoTried=true}}
+    if(S.pins.some(p=>p.cat===data.cat&&p.title===data.title)){toast("Already pinned");return}
+    try{await addPin(c,data);toast("Pinned")}catch{toast("Couldn't save. You may need edit access.")}
+  }
 });
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet()});
 
-if ('serviceWorker' in navigator){
-  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+/* ---------- Start ---------- */
+function enterFamily(fid){
+  if(fid!==API.fid){S.cities=[];S.pins=[];S.live={};S.cityId=null;lastCities="";lastCity="";CITYDOCS={}}
+  API.fid=fid;LS.set("jj_fid",fid);S.err="";subscribe();
 }
-
-(function init(){
-  applyTheme();
-  if (STATE.familyId && STATE.name) startApp();
-  else renderGate();
-})();
+async function start(newFid){
+  S.ai=false;S.places=false;S.needsCode=true;
+  const fid=newFid||API.fid;
+  if(!API.name||!fid){S.ready=true;render();setupSheet();return}
+  try{
+    if(!(await familyExists(fid))){
+      if(newFid){S.ready=true;render();createSheet(fid);return}
+      API.fid="";LS.set("jj_fid","");S.ready=true;render();setupSheet("That family space wasn't found. Enter your code again.");return;
+    }
+  }catch(e){S.err=errText(e);S.ready=true;render();return}
+  enterFamily(fid);
+}
+if("serviceWorker" in navigator)window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{})});
+render();start();
 </script>
 </body>
 </html>
