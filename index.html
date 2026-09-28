@@ -166,6 +166,14 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke
 .jm .jl{position:absolute;left:29px;top:5px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:700;color:#fff;text-shadow:0 0 2px #000,0 0 3px #000,0 1px 5px #000;pointer-events:none}
 .leaflet-control-attribution{font-size:10px!important}
 .leaflet-attribution-flag{display:none!important}
+/* Search */
+.search{position:relative;margin:18px 0 0}
+.search .mag{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);display:grid;pointer-events:none}
+.search input{width:100%;padding:13px 46px 13px 42px;border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink);font-size:16px;box-shadow:var(--shadow)}
+.search input::placeholder{color:var(--muted)}
+.search .x{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:36px;height:36px;border:0;background:none;color:var(--muted);display:grid;place-items:center;border-radius:999px}
+.search input:placeholder-shown~.x{display:none}
+.sec.qres{margin-top:14px}
 </style>
 </head>
 <body>
@@ -238,6 +246,8 @@ const IC={
  events:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18M9.5 15l1.7 1.5 3.3-3"/>',
  games:'<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6c3.5 3.5 3.5 9.3 0 12.8M18.4 5.6c-3.5 3.5-3.5 9.3 0 12.8M3 12h18"/>',
  map:'<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+ search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+ x:'<path d="M6 6l12 12M18 6 6 18"/>',
  dash:'<rect x="3" y="3" width="7" height="9" rx="1.8"/><rect x="14" y="3" width="7" height="5" rx="1.8"/><rect x="14" y="12" width="7" height="9" rx="1.8"/><rect x="3" y="16" width="7" height="5" rx="1.8"/>',
  dir:'<path d="M3 11 21 3l-8 18-2-8z"/>',
  link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
@@ -525,14 +535,19 @@ const store={
   async setLive(cid,kind,data){await commit(FB.updateDoc(cityRef(cid),{["live."+kind]:clean(data)}))}
 };
 function openCity(id){
-  S.cityId=id;S.pins=[];S.live={};lastCity="";S.tab="dash";S.mapSel=null;S.mapFilter="all";window.scrollTo(0,0);
+  S.cityId=id;S.pins=[];S.live={};lastCity="";S.tab="dash";S.q={};S.sr={};S.mapSel=null;S.mapFilter="all";window.scrollTo(0,0);
   render();loadCity().catch(()=>toast("Couldn't load this trip."));
 }
 function closeCity(){S.cityId=null;render();window.scrollTo(0,0)}
 function resolveNames(){mountMap();infoKick()}
 
 /* ---------- Render ---------- */
-function render(){
+function render(){   // a full redraw (e.g. another phone saved something) must not steal the cursor from the search box
+  const ae=document.activeElement,keep=ae&&ae.id==="q"?[ae.selectionStart,ae.selectionEnd]:null;
+  renderNow();
+  if(keep){const q=$("#q");if(q){try{q.focus({preventScroll:true});q.setSelectionRange(keep[0],keep[1])}catch{}}}
+}
+function renderNow(){
   const app=$("#app");
   if(!S.cityId){app.innerHTML=homeHTML();$("#navslot").innerHTML=""}
   else if(!city()){app.innerHTML=S.ready?`<div class="empty"><strong>This trip was removed.</strong><button class="btn" data-act="home">Back to trips</button></div>`:"";$("#navslot").innerHTML=""}
@@ -565,7 +580,7 @@ function cityHTML(){
   </section>
   <div style="--c:${catColor(S.tab)}">${tabHTML(c)}</div>`;
 }
-function pinsOf(k){return S.pins.filter(p=>p.cat===k).sort((a,b)=>(b.at||0)-(a.at||0))}
+function pinsOf(k){return S.pins.filter(p=>p.cat===k&&hit(k,p.title,p.note,p.when,p.byName)).sort((a,b)=>(b.at||0)-(a.at||0))}
 function pinCard(p,c){
   const loved=p.status==="loved";
   const inner=`${p.when?`<div class="when">${esc(p.when)}</div>`:""}<div class="t">${esc(p.title)}</div>
@@ -581,9 +596,9 @@ function pinCard(p,c){
   return wrapCard(p,p.cat,inner);
 }
 function pinsSection(k,c,title,sub,addLabel){
-  const ps=pinsOf(k);
+  const ps=pinsOf(k),any=S.pins.some(p=>p.cat===k);
   return `<section class="sec"><div class="sec-head"><div><h2>${title}</h2><p class="sub">${sub}</p></div></div>
-  ${ps.length?`<ul class="cards">${ps.map(p=>pinCard(p,c)).join("")}</ul>`:(addLabel?"":`<p class="note">Nothing pinned yet.</p>`)}
+  ${ps.length?`<ul class="cards">${ps.map(p=>pinCard(p,c)).join("")}</ul>`:(qOf(k)&&any?`<p class="note">No pins match “${esc(qOf(k))}”.</p>`:(addLabel?"":`<p class="note">Nothing pinned yet.</p>`))}
   ${addLabel?`<button class="add" data-act="addPin" data-k="${k}">${ico("plus")}${addLabel}</button>`:""}</section>`;
 }
 function when(ts){return ts?new Date(ts).toLocaleDateString(undefined,{month:"short",day:"numeric"}):""}
@@ -611,9 +626,141 @@ function suggestCard(it,i,src,cat,c){
 function discover(kind,cat,c,title,sub,btn,extra=""){
   const L=S.live[kind];
   return `<section class="sec"><div class="sec-head"><div><h2>${title}</h2><p class="sub">${L?"Updated "+when(L.at)+". Tap Pin to save one for the family.":(S.ai?sub:"Search Google Maps, then pin what the family likes.")}</p></div></div>${extra}
-  ${L?.items?.length?`<ul class="cards">${L.items.map((it,i)=>suggestCard(it,i,kind,cat,c)).join("")}</ul>`:""}
+  ${(()=>{const sh=listHits(kind,cat);return L?.items?.length?(sh.length?`<ul class="cards">${sh.map(({it,i})=>suggestCard(it,i,kind,cat,c)).join("")}</ul>`:`<p class="note">No suggestions match “${esc(qOf(cat))}”.</p>`):""})()}
   <div style="margin-top:12px">${aiBtn(kind,btn)}</div></section>`;
 }
+/* ---------- Search: a box on Eat, Play, Explore, Events and Sports ----------
+   Typing filters what is already on the tab (your pins, the suggestions, events, teams). Pressing Enter (or the button)
+   looks for NEW listings: places on OpenStreetMap, live events (with the AI key) or teams from any city. */
+S.q={};S.sr={};
+const SEARCH_TABS=["eat","play","see","events","games"],PLACE_TABS=["eat","play","see"];
+const normq=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+const qOf=tab=>String(S.q[tab]||"").trim();
+function hit(tab,...fields){   // every word typed must appear somewhere in the listing (any order, ignoring case and accents)
+  const t=normq(qOf(tab)).split(/\s+/).filter(Boolean);if(!t.length)return true;
+  const h=normq(fields.filter(Boolean).join(" "));return t.every(w=>h.includes(w));
+}
+const PH={eat:"Search restaurants",play:"Search entertainment",see:"Search things to do",events:"Search events",games:"Search teams and games"};
+const listHits=(kind,tab)=>((S.live[kind]||{}).items||[]).map((it,i)=>({it,i})).filter(({it})=>it&&hit(tab,it.name,it.kind,it.why,it.area,it.typical_timing));
+function eventHits(c){
+  const V=S.live.events,A=S.live.annual;
+  const verAll=(V?.items||[]).filter(e=>inRange(e.date,c)).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+  return {verAll,ver:verAll.filter(e=>hit("events",e.name,e.venue,e.date,e.time)),annual:(A?.items||[]).map((it,i)=>({it,i})).filter(({it})=>hit("events",it.name,it.why,it.typical_timing))};
+}
+function gameHits(c){
+  const m=metroFor(c.name),G=S.live.games;
+  const verAll=(G?.items||[]).filter(e=>inRange(e.date,c)).sort((a,b)=>(a.date+(a.time||"")).localeCompare(b.date+(b.time||"")));
+  const teams=m?LEAGUES.filter(l=>m[l]).flatMap(l=>m[l].filter(t=>hit("games",t,l,m.n)).map(t=>({t,l}))):[];
+  return {m,verAll,ver:verAll.filter(e=>hit("games",e.matchup,e.league,e.venue,e.date)),teams};
+}
+function teamHits(c){   // teams from ANY city that match (the trip city's own teams are already filtered on the page)
+  const mine=metroFor(c.name),out=[];
+  for(const m of METROS)for(const l of LEAGUES)for(const t of m[l]||[])if((!mine||m!==mine)&&hit("games",t,l,m.n))out.push({team:t,league:l,metro:m.n});
+  return out;
+}
+function matchCount(tab,c){
+  if(tab==="events"){const h=eventHits(c);return pinsOf("events").length+h.ver.length+h.annual.length}
+  if(tab==="games"){const h=gameHits(c);return pinsOf("games").length+h.ver.length+h.teams.length}
+  return pinsOf(tab).length+listHits(tab==="eat"?"eat_"+S.eatStyle:tab,tab).length;
+}
+function searchBar(tab){
+  return `<div class="search"><span class="mag">${ico("search")}</span><input id="q" type="text" value="${esc(S.q[tab]||"")}" placeholder="${PH[tab]}" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="${PH[tab]}"><button class="x" data-act="qclear" aria-label="Clear search">${ico("x")}</button></div>`;
+}
+function matchNote(tab,c){
+  const q=qOf(tab);if(!q)return "";
+  const n=matchCount(tab,c);
+  return `<p class="note" style="margin:10px 2px 0">${n?"Showing "+n+" match"+(n===1?"":"es")+" already on this tab for “"+esc(q)+"”.":"Nothing on this tab matches “"+esc(q)+"”."}</p>`;
+}
+
+/* ---- looking up new listings ---- */
+const KINDS={eat:["restaurant","cafe","bar","pub","fast_food","food_court","ice_cream","biergarten","bakery","deli","coffee_shop","confectionery"],
+  play:["theatre","cinema","nightclub","music_venue","arts_centre","casino","bowling_alley","comedy_club","events_venue","stadium","pub","bar","amusement_arcade","sports_centre"],
+  see:["attraction","museum","gallery","viewpoint","monument","memorial","castle","park","garden","zoo","aquarium","theme_park","artwork","place_of_worship","ruins","fort","historic"]};
+const NOT_PLACES=new Set(["highway","boundary","place","landuse","waterway","railway","postcode"]);
+async function placeSearch(q,c,tab){
+  const g0=c.geo&&typeof c.geo.lat==="number"?c.geo:null,d=.45;   // ~30 miles around the trip city
+  const u="https://nominatim.openstreetmap.org/search?format=jsonv2&limit=12&addressdetails=1&extratags=1&q="+encodeURIComponent(g0?q:q+", "+c.name)
+    +(g0?`&viewbox=${(g0.lng-d).toFixed(4)},${(g0.lat+d).toFixed(4)},${(g0.lng+d).toFixed(4)},${(g0.lat-d).toFixed(4)}&bounded=1`:"");
+  const rows=await nomJSON(u),want=new Set(KINDS[tab]||[]),out=[];
+  for(const r of rows||[]){
+    const name=String(r.name||"").trim();
+    if(!name||NOT_PLACES.has(r.category)||!isFinite(+r.lat)||!isFinite(+r.lon))continue;
+    const lat=+(+r.lat).toFixed(5),lng=+(+r.lon).toFixed(5);
+    if(out.some(o=>o.name.toLowerCase()===name.toLowerCase()&&km(o.lat,o.lng,lat,lng)<.25))continue;   // OpenStreetMap often lists one place twice (a point and a building)
+    const a=r.address||{},street=[a.house_number,a.road||a.pedestrian].filter(Boolean).join(" "),area=a.suburb||a.neighbourhood||a.city_district||"",town=a.city||a.town||a.village||"";
+    const ty=String(r.type||"").replace(/_/g," ");
+    out.push({name,type:ty.charAt(0).toUpperCase()+ty.slice(1),raw:r.type||"",addr:[street,area,town].filter(Boolean).join(", "),lat,lng,website:siteOf(r)});
+  }
+  out.sort((x,y)=>want.has(y.raw)-want.has(x.raw));   // the kinds of place this tab is about come first
+  return out.slice(0,8);
+}
+function parseEvents(raw,c,kind){
+  const str=v=>String(v==null?"":v);
+  return raw.filter(x=>x&&typeof x==="object"&&/^\d{4}-\d{2}-\d{2}$/.test(str(x.date))&&inRange(x.date,c)).slice(0,40).map(x=>kind==="events"
+    ?{name:str(x.name),date:x.date,time:str(x.time),venue:str(x.venue),url:str(x.url)}
+    :{league:str(x.league),matchup:str(x.matchup),date:x.date,time:str(x.time),venue:str(x.venue),url:str(x.url)}).filter(x=>kind==="events"?x.name:x.matchup);
+}
+async function eventSearch(q,c){
+  if(!c.start)throw Object.assign(new Error("no dates"),{code:"no_dates"});
+  const s=c.start,e=c.end||s,L={month:"long",day:"numeric",year:"numeric"},span=s===e?fmt(s,L):fmt(s,L)+" to "+fmt(e,L),term=q.replace(/["\r\n]+/g," ").slice(0,80);
+  return parseEvents(await aiSearchJSON(`Search the web for real, scheduled public events in or near ${c.name} between ${s} and ${e} (${span}) that match "${term}" (it may be an artist, team, show, type of event or venue). Only include events you found a real listing for. Reply with only a JSON array of objects: {"name": string, "date": "YYYY-MM-DD", "time": string (local, like "7:30 PM", or ""), "venue": string, "url": string (the listing, or "")}. Reply [] if you find none.`),c,"events");
+}
+async function runSearch(tab){
+  const c=city(),q=qOf(tab);
+  if(!c||q.length<2||!(PLACE_TABS.includes(tab)||(tab==="events"&&S.ai)))return;
+  const cur=S.sr[tab];if(cur&&cur.busy&&cur.q===q)return;
+  const st=S.sr[tab]={q,busy:true,res:[],err:""};refreshSearchBody();
+  try{st.res=tab==="events"?await eventSearch(q,c):await placeSearch(q,c,tab)}
+  catch(e){st.err=tab==="events"?aiErrText(e,"Couldn't search right now. Try again."):"Couldn't reach the map service. Check your connection and try again."}
+  st.busy=false;if(S.sr[tab]===st&&S.tab===tab)refreshSearchBody();
+}
+function resultCard(r,i,tab,c){
+  const pinned=S.pins.some(p=>p.cat===tab&&p.title===r.name);
+  const dir="https://www.google.com/maps/dir/?api=1&destination="+r.lat+","+r.lng;
+  return `<li class="card" style="--c:${catColor(tab)}"><div class="ico">${ico(tab)}</div><div><div class="t">${esc(r.name)}</div>${r.type?`<div class="when" style="margin:2px 0 0">${esc(r.type)}</div>`:""}${r.addr?`<div class="d">${esc(r.addr)}</div>`:""}
+   <div class="acts">${pinned?`<span class="chip on">${ico("pin")}Pinned</span>`:`<button class="chip go" data-act="pinResult" data-i="${i}">${ico("pin")}Pin</button>`}
+   ${r.website?`<a class="chip" href="${esc(r.website)}" target="_blank" rel="noopener">${ico("link")}Website</a>`:`<a class="chip" href="${esc(g(r.name+" "+c.name))}" target="_blank" rel="noopener">${ico("link")}Info</a>`}
+   <a class="chip" href="${esc(dir)}" target="_blank" rel="noopener">${ico("dir")}Directions</a></div></div></li>`;
+}
+function eventResultCard(e,i,c){
+  const pinned=S.pins.some(p=>p.cat==="events"&&p.title===e.name);
+  return `<li class="card" style="--c:var(--events)"><div class="ico">${ico("events")}</div><div><div class="when">${esc(fmt(e.date,{weekday:"short",month:"short",day:"numeric"}))}${e.time?", "+esc(e.time):""}</div><div class="t">${esc(e.name)}</div>${e.venue?`<div class="d">${esc(e.venue)}</div>`:""}
+   <div class="acts">${pinned?`<span class="chip on">${ico("pin")}Pinned</span>`:`<button class="chip go" data-act="pinResult" data-i="${i}">${ico("pin")}Pin</button>`}${e.venue?`<a class="chip" href="${esc(dirs(e.venue,c.name))}" target="_blank" rel="noopener">${ico("dir")}Directions</a>`:""}${e.url?`<a class="chip" href="${esc(e.url)}" target="_blank" rel="noopener">${ico("ticket")}Details</a>`:`<a class="chip" href="${esc(g(e.name+" "+(e.venue||c.name)+" "+e.date))}" target="_blank" rel="noopener">${ico("link")}Info</a>`}</div></div></li>`;
+}
+function teamResultCard(t,c){
+  const mo=monthsLabel(c);
+  return `<li class="card" style="--c:var(--games)"><div class="ico">${ico("games")}</div><div><div class="t">${esc(t.team)}</div><div class="when" style="margin:2px 0 0">${esc(t.league)} · ${esc(t.metro)}</div>
+   <div class="acts"><a class="chip go" target="_blank" rel="noopener" href="${esc(g(t.team+" schedule "+mo))}">${ico("events")}Schedule</a><a class="chip" target="_blank" rel="noopener" href="https://www.stubhub.com/search?q=${encodeURIComponent(t.team)}">${ico("ticket")}Tickets</a><button class="chip quiet" data-act="pinTeam" data-t="${esc(t.team)}" data-away="1">${ico("pin")}Pin a game</button></div></div></li>`;
+}
+function moreBlock(tab,c){   // sits right under the search box while something is typed
+  const q=qOf(tab);if(q.length<2)return "";
+  const st=S.sr[tab],fresh=!!st&&st.q===q,busy=fresh&&st.busy,qs=esc(q),mo=monthsLabel(c);
+  const add=`<button class="chip" data-act="qadd">${ico("plus")}${tab==="games"?"Add “"+qs+"” as a game":tab==="events"?"Add “"+qs+"” as an event":"Add “"+qs+"” by hand"}</button>`;
+  let acts="",res="";
+  if(PLACE_TABS.includes(tab)){
+    acts=`<button class="chip go" data-act="qgo" ${busy?"disabled":""}>${ico("search")}${busy?"Searching…":fresh?"Search again":"Look up “"+qs+"” near "+esc(c.name)}</button>`;
+    if(fresh&&!busy)res=st.err?`<p class="note">${esc(st.err)}</p>`
+      :st.res.length?`<p class="league">Places matching “${qs}”</p><ul class="cards">${st.res.map((r,i)=>resultCard(r,i,tab,c)).join("")}</ul><p class="note" style="margin-top:8px">Addresses and positions © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>.</p>`
+      :`<p class="note">No places found for “${qs}” near ${esc(c.name)}. Try another spelling, or add it by hand.</p>`;
+  }else if(tab==="events"){
+    acts=`<a class="chip go" href="${esc(g(q+" events in "+c.name+" "+mo))}" target="_blank" rel="noopener">${ico("events")}Search Google</a><a class="chip" href="https://www.stubhub.com/search?q=${encodeURIComponent(q+" "+c.name)}" target="_blank" rel="noopener">${ico("ticket")}StubHub</a>`
+      +(S.ai?`<button class="chip go" data-act="qgo" ${busy?"disabled":""}>${ico("spark")}${busy?"Searching the web…":fresh?"Search again":"Search the web for “"+qs+"” on our dates"}</button>`:"");
+    if(fresh&&!busy)res=st.err?`<p class="note">${esc(st.err)}</p>`
+      :st.res.length?`<p class="league">Events matching “${qs}”</p><ul class="cards">${st.res.map((e,i)=>eventResultCard(e,i,c)).join("")}</ul>`
+      :`<p class="note">No events matching “${qs}” were found for your dates.</p>`;
+  }else{
+    const all=teamHits(c),list=all.slice(0,12);
+    acts=`<a class="chip go" href="${esc(g(q+" schedule "+c.name+" "+mo))}" target="_blank" rel="noopener">${ico("games")}Search Google</a>`;
+    if(list.length)res=`<p class="league">Teams from other cities matching “${qs}”</p><ul class="cards">${list.map(t=>teamResultCard(t,c)).join("")}</ul>${all.length>list.length?`<p class="note" style="margin-top:8px">Showing ${list.length} of ${all.length}. Type more to narrow it down.</p>`:""}`;
+  }
+  return `<section class="sec qres"><div class="acts">${acts}${add}</div>${res}</section>`;
+}
+function searchBody(tab,c){return moreBlock(tab,c)+matchNote(tab,c)+tabBody(c)}
+function refreshSearchBody(){   // updates everything under the search box WITHOUT touching the box, so typing is never interrupted
+  const el=$("#qbody"),c=city();if(!el||!c||!SEARCH_TABS.includes(S.tab))return;
+  el.innerHTML=searchBody(S.tab,c);resolveNames();
+}
+
 const GROUPS=[{k:"eat",t:"Restaurants"},{k:"play",t:"Entertainment"},{k:"see",t:"Sights"},{k:"events",t:"Events"},{k:"games",t:"Games"}];
 function dashHTML(c){   // every pin for this trip in one list, grouped by kind
   const f=S.dashFilter||"all",n=S.pins.length,lv=S.pins.filter(p=>p.status==="loved").length;
@@ -626,6 +773,10 @@ function dashHTML(c){   // every pin for this trip in one list, grouped by kind
   ${groups.length?groups.map(gr=>`<section class="sec" style="--c:${catColor(gr.k)}"><div class="sec-head"><div><h2>${gr.t}</h2><p class="sub">${gr.ps.length} pinned</p></div></div><ul class="cards">${gr.ps.map(p=>pinCard(p,c)).join("")}</ul></section>`).join(""):`<p class="note">Nothing in this view yet.</p>`}`;
 }
 function tabHTML(c){
+  if(!SEARCH_TABS.includes(S.tab))return tabBody(c);   // no search on Dashboard or Map
+  return `<div id="qtop">${searchBar(S.tab)}</div><div id="qbody">${searchBody(S.tab,c)}</div>`;
+}
+function tabBody(c){
   switch(S.tab){
   case "dash":return dashHTML(c);
   case "eat":{
@@ -659,10 +810,7 @@ async function refreshLive(kind){
       ?`Search the web for real, scheduled public events in or near ${c.name} between ${s} and ${e} (${span}): concerts, festivals, theater and comedy shows, exhibitions and seasonal events. Only include events you found a real listing for. Reply with only a JSON array of objects: {"name": string, "date": "YYYY-MM-DD", "time": string (local, like "7:30 PM", or ""), "venue": string, "url": string (the listing, or "")}. Reply [] if you find none.`
       :`Search official league schedules for professional and major college games played in or near ${c.name} between ${s} and ${e} (${span}). Only include games you found on a real schedule. Reply with only a JSON array of objects: {"league": string, "matchup": string (like "Celtics vs Knicks"), "date": "YYYY-MM-DD", "time": string (local, like "7:30 PM", or ""), "venue": string, "url": string (the schedule or ticket page, or "")}. Reply [] if you find none.`;
     const raw=await aiSearchJSON(prompt);
-    const str=v=>String(v==null?"":v);
-    const items=raw.filter(x=>x&&typeof x==="object"&&/^\d{4}-\d{2}-\d{2}$/.test(str(x.date))&&inRange(x.date,c)).slice(0,40).map(x=>kind==="events"
-      ?{name:str(x.name),date:x.date,time:str(x.time),venue:str(x.venue),url:str(x.url)}
-      :{league:str(x.league),matchup:str(x.matchup),date:x.date,time:str(x.time),venue:str(x.venue),url:str(x.url)}).filter(x=>kind==="events"?x.name:x.matchup);
+    const items=parseEvents(raw,c,kind);
     await store.setLive(c.id,kind,{items,at:Date.now(),note:""});
     toast(items.length?`Found ${items.length}`:"Nothing found for those dates");
   }catch(err){toast(aiErrText(err,"Couldn't load right now. Try again."))}
@@ -670,36 +818,37 @@ async function refreshLive(kind){
 }
 function eventsHTML(c){
   const m=monthsLabel(c),V=S.live.events,A=S.live.annual;
-  const ver=(V?.items||[]).filter(e=>inRange(e.date,c)).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+  const {ver,verAll,annual}=eventHits(c);
   return `<section class="sec"><div class="sec-head"><div><h2>Happening ${c.start?"during the trip":"soon"}</h2><p class="sub">Live listings for ${esc(c.name)}, ${esc(m)}.</p></div></div>
   <div class="links">
    <a class="chip go" target="_blank" rel="noopener" href="${esc(g("events in "+c.name+" "+m)+"&ibp=htl;events")}">${ico("events")}All events</a>
    <a class="chip" target="_blank" rel="noopener" href="${esc(g("concerts in "+c.name+" "+m))}">${ico("play")}Concerts</a>
    <a class="chip" target="_blank" rel="noopener" href="${esc(g("festivals in "+c.name+" "+m))}">${ico("spark")}Festivals</a>
-   <a class="chip" target="_blank" rel="noopener" href="https://www.ticketmaster.com/search?q=${encodeURIComponent(c.name)}">${ico("ticket")}Ticketmaster</a>
+   <a class="chip" target="_blank" rel="noopener" href="https://www.stubhub.com/search?q=${encodeURIComponent(c.name)}">${ico("ticket")}StubHub</a>
   </div>${liveBtn("events",c,"Load confirmed events for our dates")}</section>
   ${V?`<section class="sec"><div class="sec-head"><div><h2>Confirmed for your dates</h2><p class="sub">Checked ${when(V.at)}${V.note?". "+esc(V.note):""}</p></div></div>
    ${ver.length?`<ul class="cards">${ver.map(e=>{const pinned=S.pins.some(p=>p.cat==="events"&&p.title===e.name);return `<li class="card" style="--c:var(--events)"><div class="ico">${ico("events")}</div><div><div class="when">${esc(fmt(e.date,{weekday:"short",month:"short",day:"numeric"}))}${e.time?", "+esc(e.time):""}</div><div class="t">${esc(e.name)}</div>${e.venue?`<div class="d">${esc(e.venue)}</div>`:""}
-    <div class="acts">${pinned?`<span class="chip on">${ico("pin")}Pinned</span>`:`<button class="chip go" data-act="pinFrom" data-src="events" data-id="${esc(e.name+e.date)}">${ico("pin")}Pin</button>`}${e.venue?`<a class="chip" href="${esc(dirs(e.venue,c.name))}" target="_blank" rel="noopener">${ico("dir")}Directions</a>`:""}${e.url?`<a class="chip" href="${esc(e.url)}" target="_blank" rel="noopener">${ico("ticket")}Details</a>`:`<a class="chip" href="${esc(g(e.name+" "+(e.venue||c.name)+" "+e.date))}" target="_blank" rel="noopener">${ico("link")}Info</a>`}</div></div></li>`}).join("")}</ul>`:`<p class="note">None of the checked events fall inside your current dates.</p>`}</section>`:""}
+    <div class="acts">${pinned?`<span class="chip on">${ico("pin")}Pinned</span>`:`<button class="chip go" data-act="pinFrom" data-src="events" data-id="${esc(e.name+e.date)}">${ico("pin")}Pin</button>`}${e.venue?`<a class="chip" href="${esc(dirs(e.venue,c.name))}" target="_blank" rel="noopener">${ico("dir")}Directions</a>`:""}${e.url?`<a class="chip" href="${esc(e.url)}" target="_blank" rel="noopener">${ico("ticket")}Details</a>`:`<a class="chip" href="${esc(g(e.name+" "+(e.venue||c.name)+" "+e.date))}" target="_blank" rel="noopener">${ico("link")}Info</a>`}</div></div></li>`}).join("")}</ul>`:`<p class="note">${verAll.length&&qOf("events")?"No confirmed events match your search.":"None of the checked events fall inside your current dates."}</p>`}</section>`:""}
   <section class="sec"><div class="sec-head"><div><h2>Yearly traditions around then</h2><p class="sub">${A?"These usually land in this window. Confirm exact dates before you go.":"Festivals and seasonal events that usually happen around your dates."}</p></div></div>
-  ${A?.items?.length?`<ul class="cards">${A.items.map((it,i)=>{const pinned=S.pins.some(p=>p.cat==="events"&&p.title===it.name);return `<li class="card" style="--c:var(--events)"><div class="ico">${ico("spark")}</div><div><div class="when">${esc(it.typical_timing)}</div><div class="t">${esc(it.name)}</div><div class="d">${esc(it.why)}</div>
+  ${A?.items?.length?`<ul class="cards">${annual.map(({it,i})=>{const pinned=S.pins.some(p=>p.cat==="events"&&p.title===it.name);return `<li class="card" style="--c:var(--events)"><div class="ico">${ico("spark")}</div><div><div class="when">${esc(it.typical_timing)}</div><div class="t">${esc(it.name)}</div><div class="d">${esc(it.why)}</div>
     <div class="acts">${pinned?`<span class="chip on">${ico("pin")}Pinned</span>`:`<button class="chip go" data-act="pinFrom" data-src="annual" data-i="${i}">${ico("pin")}Pin</button>`}<a class="chip" href="${esc(g(it.name+" "+c.name+" "+(c.start||today()).slice(0,4)+" dates"))}" target="_blank" rel="noopener">Check dates</a></div></div></li>`}).join("")}</ul>`:A?`<p class="note">No recurring events usually fall in this window.</p>`:""}
   <div style="margin-top:12px">${aiBtn("annual","Find yearly events")}</div></section>`;
 }
 function sportsHTML(c){
-  const m=metroFor(c.name),mo=monthsLabel(c),G=S.live.games;
-  const ver=(G?.items||[]).filter(e=>inRange(e.date,c)).sort((a,b)=>(a.date+(a.time||"")).localeCompare(b.date+(b.time||"")));
+  const mo=monthsLabel(c),G=S.live.games,{m,ver,verAll,teams}=gameHits(c);
   let h=S.ai?`<section class="sec"><div class="sec-head"><div><h2>Live game lookup</h2><p class="sub">Searches official schedules for every home game during your trip.</p></div></div>${liveBtn("games",c,"Load games for our dates")}</section>`:"";
   if(G)h+=`<section class="sec"><div class="sec-head"><div><h2>Games during your trip</h2><p class="sub">Checked ${when(G.at)}. Times are local.</p></div></div>
    ${ver.length?`<ul class="cards">${ver.map(e=>{const pinned=S.pins.some(p=>p.cat==="games"&&p.title===e.matchup);return `<li class="card" style="--c:var(--games)"><div class="ico">${ico("games")}</div><div><div class="when">${esc(fmt(e.date,{weekday:"short",month:"short",day:"numeric"}))}${e.time?", "+esc(e.time):""}</div><div class="t">${esc(e.matchup)}</div><div class="d">${esc(e.league)}${e.venue?", "+esc(e.venue):""}</div>
-    <div class="acts">${pinned?`<span class="chip on">${ico("pin")}Pinned</span>`:`<button class="chip go" data-act="pinFrom" data-src="games" data-id="${esc(e.matchup+e.date)}">${ico("pin")}Pin</button>`}${e.venue?`<a class="chip" href="${esc(dirs(e.venue,c.name))}" target="_blank" rel="noopener">${ico("dir")}Directions</a>`:""}<a class="chip" href="${esc(e.url||g(e.matchup+" "+e.date+" tickets"))}" target="_blank" rel="noopener">${ico("ticket")}Tickets</a></div></div></li>`}).join("")}</ul>`:`<p class="note">No checked games fall inside your current dates.</p>`}</section>`;
+    <div class="acts">${pinned?`<span class="chip on">${ico("pin")}Pinned</span>`:`<button class="chip go" data-act="pinFrom" data-src="games" data-id="${esc(e.matchup+e.date)}">${ico("pin")}Pin</button>`}${e.venue?`<a class="chip" href="${esc(dirs(e.venue,c.name))}" target="_blank" rel="noopener">${ico("dir")}Directions</a>`:""}<a class="chip" href="${esc(e.url||g(e.matchup+" "+e.date+" tickets"))}" target="_blank" rel="noopener">${ico("ticket")}Tickets</a></div></div></li>`}).join("")}</ul>`:`<p class="note">${verAll.length&&qOf("games")?"No confirmed games match your search.":"No checked games fall inside your current dates."}</p>`}</section>`;
   if(!m)return h+`<section class="sec"><h2>Pro teams</h2><p class="sub">No NFL, NBA, NHL or MLB team is based in ${esc(c.name)}.</p><div class="links" style="margin-top:10px"><a class="chip go" target="_blank" rel="noopener" href="${esc(g("sports games near "+c.name+" "+mo))}">${ico("games")}Games nearby</a></div></section>`;
+  if(qOf("games")&&!teams.length)return h;   // searching, and none of this city's teams match
   const lgs=LEAGUES.filter(l=>m[l]).map(l=>({l,st:seasonStatus(l,c.start,c.end)})).sort((a,b)=>"ipo".indexOf(a.st[0])-"ipo".indexOf(b.st[0]));
   h+=`<section class="sec"><div class="sec-head"><div><h2>${esc(m.n)} teams</h2><p class="sub">${c.start?"For "+esc(fmt(c.start))+(c.end?" – "+esc(fmt(c.end)):"")+".":"Add trip dates to see who's in season."} Tap Schedule for exact times.</p></div></div>`;
   lgs.forEach(({l,st})=>{
-    const lab={in:"In season",post:"Playoffs window",off:"Off-season"}[st];
-    h+=`<p class="league">${l}</p><ul class="cards">${m[l].map(t=>`<li class="card" style="--c:var(--games)"><div class="ico">${ico("games")}</div><div><div class="team"><div class="t">${esc(t)}</div><span class="badge ${st}">${lab}</span></div>
-      <div class="acts"><a class="chip go" target="_blank" rel="noopener" href="${esc(g(t+" home schedule "+mo))}">${ico("events")}Schedule</a><a class="chip" target="_blank" rel="noopener" href="https://www.ticketmaster.com/search?q=${encodeURIComponent(t)}">${ico("ticket")}Tickets</a>
+    const lab={in:"In season",post:"Playoffs window",off:"Off-season"}[st],tl=m[l].filter(t=>hit("games",t,l,m.n));
+    if(!tl.length)return;
+    h+=`<p class="league">${l}</p><ul class="cards">${tl.map(t=>`<li class="card" style="--c:var(--games)"><div class="ico">${ico("games")}</div><div><div class="team"><div class="t">${esc(t)}</div><span class="badge ${st}">${lab}</span></div>
+      <div class="acts"><a class="chip go" target="_blank" rel="noopener" href="${esc(g(t+" home schedule "+mo))}">${ico("events")}Schedule</a><a class="chip" target="_blank" rel="noopener" href="https://www.stubhub.com/search?q=${encodeURIComponent(t)}">${ico("ticket")}Tickets</a>
       ${st!=="off"?`<button class="chip quiet" data-act="pinTeam" data-t="${esc(t)}">${ico("pin")}Pin a game</button>`:""}</div></div></li>`).join("")}</ul>`;
   });
   return h+`</section>`;
@@ -1142,7 +1291,19 @@ document.addEventListener("click",async ev=>{
     catch(e){el.disabled=false;el.textContent="Create family space";toast(errText(e))}
     return;
   }
-  if(a==="pinTeam")return pinSheet("games",{title:el.dataset.t+" home game"});
+  if(a==="pinTeam")return pinSheet("games",{title:el.dataset.t+(el.dataset.away?" game":" home game")});
+  if(a==="qgo")return runSearch(S.tab);
+  if(a==="qclear"){S.q[S.tab]="";delete S.sr[S.tab];const qi=$("#q");if(qi){qi.value="";qi.focus()}refreshSearchBody();return}
+  if(a==="qadd")return pinSheet(S.tab,{title:qOf(S.tab)});
+  if(a==="pinResult"){
+    const st=S.sr[S.tab],r=st&&st.res&&st.res[+el.dataset.i];if(!r||!c)return;
+    const data=S.tab==="events"
+      ?{cat:"events",title:r.name,when:fmt(r.date,{weekday:"short",month:"short",day:"numeric"})+(r.time?", "+r.time:""),note:r.venue||"",url:r.url||""}
+      :{cat:S.tab,title:r.name,note:[r.type,r.addr].filter(Boolean).join(". "),lat:r.lat,lng:r.lng,geoTried:true,geoSrc:"osm",...(r.website?{website:r.website}:{})};
+    if(S.pins.some(p=>p.cat===data.cat&&p.title===data.title)){toast("Already pinned");return}
+    try{await addPin(c,data);toast("Pinned")}catch{toast("Couldn't save. You may need edit access.")}
+    return;
+  }
   if(a==="pinFrom"){
     const src=el.dataset.src;let data;
     const day=it=>fmt(it.date,{weekday:"short",month:"short",day:"numeric"})+(it.time?", "+it.time:"");
@@ -1156,6 +1317,8 @@ document.addEventListener("click",async ev=>{
   }
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet()});
+document.addEventListener("input",e=>{const t=e.target;if(t&&t.id==="q"){S.q[S.tab]=t.value;refreshSearchBody()}});   // only the results under the box are redrawn
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target&&e.target.id==="q"){e.preventDefault();runSearch(S.tab)}});
 
 /* ---------- Start ---------- */
 function enterFamily(fid,ck){

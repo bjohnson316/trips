@@ -60,6 +60,26 @@ offline sync when you're back online).
   than one lookup a second). If nothing matches, the pin simply isn't
   placed, and Directions still works. "Place N more on the map" retries.
 
+### Search (Eat, Play, Explore, Events and Sports)
+Each of those tabs has a search box at the top (Dashboard and Map don't).
+
+- **Typing filters what's already there:** your pins, the suggestions, confirmed events, yearly
+  traditions, teams and games. Every word has to match, in any order, ignoring capitals and accents
+  ("cafe vitt" finds "Café Vittoria"). Blurbs and neighbourhoods count too. The ✕ clears it. Each tab keeps
+  its own search until you leave the trip.
+- **Press Enter (or "Look up…") to find new listings:**
+  - *Eat, Play, Explore:* looks the words up on OpenStreetMap, within about 30 miles of the trip
+    city, and shows up to eight places with their type, address and website. **Pin** saves one with its
+    exact position and website. Places that fit the tab (restaurants on Eat, theatres and bars on Play, museums
+    and landmarks on Explore) are listed first.
+  - *Events:* links that search Google and StubHub for your words in this city. With the shared
+    Claude key there's also **Search the web for "…" on our dates**, which shows real listings inside the trip dates.
+  - *Sports:* also lists **teams from any other city** that match (a team playing away in your city), with
+    Schedule, Tickets and Pin a game.
+  - *Not found?* **Add "…" by hand** opens the pin form with your words filled in.
+
+Typing never sends anything anywhere. A lookup sends only your search words, once, when you press Enter.
+
 ### The Dashboard tab
 The first tab, and where a trip opens. It lists **every pin for the trip in one
 place**, grouped as Restaurants, Entertainment, Sights, Events and Games (newest
@@ -136,7 +156,7 @@ Menu and Info open Google Maps and Google search instead.
 
 ## Privacy
 
-Looking up a photo, city, website or map position sends the trip's city name or the pin's
+Looking up a photo, city, website, place or map position sends the trip's city name or the pin's
 name to Wikipedia or OpenStreetMap from your phone, and viewing the map loads tiles
 from OpenStreetMap or Esri (so they see your IP address and the area you're viewing). Claude lists send the
 prompt, using the shared key, to Anthropic. Nothing is sent to any of them until you add a trip, add
@@ -148,7 +168,7 @@ contributors and photos are credited to their authors on Wikimedia Commons.
 - `firebase-bundle.js` is the Firebase SDK in one file. To rebuild it:
   `cd tools/firebase-bundle && npm install && npm run build`, then copy the
   new `firebase-bundle.js` to the repo root.
-- After editing any file, bump `CACHE_NAME` in `sw.js` (`jetset-shell-v9` →
-  `v10`) so phones pick up the new version instead of the cached one.
+- After editing any file, bump `CACHE_NAME` in `sw.js` (`jetset-shell-v11` →
+  `v12`) so phones pick up the new version instead of the cached one.
 - Firebase's free plan (50,000 reads and 20,000 writes a day, 1 GB) is far more
   than a family trip planner uses.
