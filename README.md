@@ -59,10 +59,10 @@ offline sync when you're back online).
   than one lookup a second). If nothing matches, the pin simply isn't
   placed, and Directions still works. "Place N more on the map" retries.
 
-### Optional: Claude lists (your own Anthropic key)
-Turns on "Find restaurants / entertainment / things to do / yearly events",
-and the live event and game lookups. Lists are saved for the whole family, so
-**only one person needs a key.**
+### Optional: Claude lists (one shared key)
+Turns on "Find restaurants / entertainment / things to do / yearly events" and
+the live event and game lookups. **You add the key once and every phone in your
+family space uses it automatically. Nobody else types anything.**
 
 1. console.anthropic.com → **Billing** → buy credit (the API is prepaid; $5 is the minimum).
 2. **Limits** → set a monthly spend cap.
@@ -70,11 +70,28 @@ and the live event and game lookups. Lists are saved for the whole family, so
 4. **API Keys → Create Key**, copy it (starts with `sk-ant-`).
 5. In the app, tap your name at the top of the home screen → **AI suggestions** → paste the key → Continue.
 
-The key is kept in that phone's browser storage only. It is never saved to
-your family's data or to GitHub. Anyone who can open developer tools on that
-phone could read it, which is why the spend cap matters. "Remove key" is in
-the same place. Lists are AI-generated, so check details before booking; the
-live lookups link to their sources.
+Phones that were signed in before this update show "Unlock AI suggestions"
+once. Tap it, enter the family code, and Continue. New phones just type the
+code as usual. To replace or remove the key, use the same place. Removing it
+turns AI off for everyone.
+
+**How the key is protected.** Before it's saved, the key is encrypted (AES-GCM)
+with a secret derived from your family code (PBKDF2), and only the scrambled
+text goes into the database. Each phone derives that secret once when the code
+is typed, and keeps only the derived secret, never the code or the API key.
+That means a screenshot of the Firebase console, an export, or a slip in the
+security rules doesn't expose the key.
+
+**What it doesn't protect against.** A phone has to decrypt the key to use it, so
+anyone who has the family code can use the key, and could read it with the
+browser's developer tools. So:
+- Keep the spend cap on, and keep the family code long and private.
+- If the code ever gets out, remove the key in the app, delete it in the Anthropic
+  console, and make a new one.
+- If you'd rather the key never reach phones at all, that takes a small
+  server-side proxy, which is what the Firebase upgrade you passed on would have provided.
+
+Lists are AI-generated, so check details before booking; the live lookups link to their sources.
 
 ### Still off (needs a private server-side key)
 Real photos, ratings and menu links for individual restaurants. Each pin's
@@ -84,7 +101,7 @@ Directions and Menu buttons open Google Maps and Google search instead.
 
 Looking up a photo or map position sends the trip's city name or the pin's
 name to Wikipedia or OpenStreetMap from your phone. Claude lists send the
-prompt to Anthropic. Nothing is sent to any of them until you add a trip, add
+prompt, using the shared key, to Anthropic. Nothing is sent to any of them until you add a trip, add
 a pin, or press a "Find…" button. Map positions are © OpenStreetMap
 contributors and photos are credited to their authors on Wikimedia Commons.
 
@@ -93,7 +110,7 @@ contributors and photos are credited to their authors on Wikimedia Commons.
 - `firebase-bundle.js` is the Firebase SDK in one file. To rebuild it:
   `cd tools/firebase-bundle && npm install && npm run build`, then copy the
   new `firebase-bundle.js` to the repo root.
-- After editing any file, bump `CACHE_NAME` in `sw.js` (`jetset-shell-v4` →
-  `v5`) so phones pick up the new version instead of the cached one.
+- After editing any file, bump `CACHE_NAME` in `sw.js` (`jetset-shell-v5` →
+  `v6`) so phones pick up the new version instead of the cached one.
 - Firebase's free plan (50,000 reads and 20,000 writes a day, 1 GB) is far more
   than a family trip planner uses.

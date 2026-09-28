@@ -360,7 +360,50 @@ function commit(p){p.catch(writeFailed);return Promise.race([p,new Promise(r=>se
    to Firestore or the repo. The lists it generates are saved to the family's shared data, so only one
    person needs a key. */
 const AI_MODEL="claude-sonnet-5";
-const aiKey=()=>LS.get("jj_akey");
+let AIKEY="";   // the shared key, decrypted in memory only. Never written to this device's storage.
+
+/* ---------- Shared key: one copy for the whole family, locked with the family code ----------
+   The key is encrypted (AES-GCM) with a secret derived from the family code (PBKDF2) BEFORE it is saved to
+   families/{id}/meta/settings, so the database only holds scrambled text (safe in a screenshot of the Firebase
+   console, or if the rules were ever loosened). Each phone derives the same secret once, when the code is
+   typed, and keeps that derived secret (not the code, and not the API key) in its own storage. */
+const KDF_ITER=window.KDF_ITER||250000;
+const b64=u=>btoa(String.fromCharCode(...u));
+const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function familyKeyFor(code,fid){
+  const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(code.trim().toLowerCase()),"PBKDF2",false,["deriveBits"]);
+  const bits=await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",iterations:KDF_ITER,salt:new TextEncoder().encode("jetset-johnsons:aes:v1:"+fid)},base,256);
+  return b64(new Uint8Array(bits));
+}
+const aesKey=ck=>crypto.subtle.importKey("raw",unb64(ck),"AES-GCM",false,["encrypt","decrypt"]);
+async function sealKey(ck,plain,fid){   // bound to this family id, so a copy pasted into another family won't open
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv,additionalData:new TextEncoder().encode(fid)},await aesKey(ck),new TextEncoder().encode(plain));
+  return {v:1,iv:b64(iv),ct:b64(new Uint8Array(ct))};
+}
+async function openKey(ck,rec,fid){
+  const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(rec.iv),additionalData:new TextEncoder().encode(fid)},await aesKey(ck),unb64(rec.ct));
+  return new TextDecoder().decode(pt);
+}
+const settingsRef=fid=>FB.doc(fsdb,"families",fid||API.fid,"meta","settings");
+let unsubSettings=null,settingsSeq=0;
+async function applySettings(snap){
+  const my=++settingsSeq;let key="",info=null,locked=false;
+  if(snap.exists()){
+    const d=snap.data(),rec=d.aiKey;
+    if(rec&&rec.ct){
+      info={hint:d.hint||"",by:d.by||"",at:d.at||0};
+      const ck=LS.get("jj_ck");
+      if(!ck)locked=true;else{try{key=await openKey(ck,rec,API.fid)}catch{locked=true}}
+    }
+  }
+  if(my!==settingsSeq)return;   // a newer snapshot arrived while decrypting
+  AIKEY=key;S.aiInfo=info;S.aiLocked=locked;S.ai=!!key;render();
+}
+async function saveSharedKey(key,ck,fid){
+  const rec=await sealKey(ck,key,fid);
+  await commit(FB.setDoc(settingsRef(fid),{aiKey:rec,hint:key.slice(-4),by:API.name,at:Date.now()}));
+}
 function aiFail(status,j){
   const m=String(j&&j.error&&j.error.message||"");let code="failed";
   if(status===401||status===403)code="bad_key";
@@ -373,7 +416,7 @@ async function aiCall(body,ms=60000){
   const ac=new AbortController(),t=setTimeout(()=>ac.abort(),ms);
   try{
     const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",signal:ac.signal,
-      headers:{"content-type":"application/json","x-api-key":aiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      headers:{"content-type":"application/json","x-api-key":AIKEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
       body:JSON.stringify(body)});
     const j=await r.json().catch(()=>({}));
     if(!r.ok)throw aiFail(r.status,j);
@@ -443,6 +486,8 @@ function subscribe(){
     if(applyDocs()||!was)render();
     S.cities.forEach(ensureCityPhoto);
   },e=>{S.err=errText(e);S.ready=true;render()});
+  if(unsubSettings)unsubSettings();
+  unsubSettings=FB.onSnapshot(settingsRef(),applySettings,()=>{});
 }
 const store={
   async setCity(id,data){await commit(FB.setDoc(cityRef(id),clean({...data,pins:{},live:{}})))},
@@ -520,7 +565,7 @@ const SEARCH={eat_best:"best restaurants",eat_local:"classic local restaurants",
 function searchLink(kind,c){
   const q=SEARCH[kind];if(!q)return "";
   const url=kind==="annual"?g(q+" in "+c.name+" "+monthsLabel(c)):mapsQ(q,c.name);
-  return `<a class="chip go" href="${esc(url)}" target="_blank" rel="noopener">${ico(kind==="annual"?"events":"map")}Search “${esc(q)}”${kind==="annual"?"":" on Google Maps"}</a><p class="note" style="margin-top:8px">Found something good? Pin it above so the whole family sees it. <button class="chip quiet" data-act="setupOpen">Turn on AI suggestions</button></p>`;
+  return `<a class="chip go" href="${esc(url)}" target="_blank" rel="noopener">${ico(kind==="annual"?"events":"map")}Search “${esc(q)}”${kind==="annual"?"":" on Google Maps"}</a><p class="note" style="margin-top:8px">Found something good? Pin it above so the whole family sees it. <button class="chip quiet" data-act="setupOpen">${S.aiLocked?"Unlock AI suggestions":"Turn on AI suggestions"}</button></p>`;
 }
 function aiBtn(kind,label){
   if(!S.ready)return "";
@@ -774,21 +819,28 @@ async function nextCityPhoto(c){
 /* ---------- Sheets ---------- */
 function sheet(html,locked){$("#modal").innerHTML=`<div class="scrim" ${locked?"":'data-act="close"'}><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${html}</div></div>`;const f=$("#modal input");f&&setTimeout(()=>f.focus(),60)}
 function closeSheet(){$("#modal").innerHTML=""}
+function aiSection(){
+  const I=S.aiInfo;let status;
+  if(S.ai&&I)status=`<p class="note"><b>On for the whole family.</b> Key ending …${esc(I.hint)}, added by ${esc(I.by||"someone")}${I.at?" on "+esc(new Date(I.at).toLocaleDateString(undefined,{month:"short",day:"numeric"})):""}.</p>`;
+  else if(S.aiLocked)status=`<p class="note" style="color:var(--eat)">A shared key is set, but this phone needs the family code once to use it. Enter the code above and tap Continue.</p>`;
+  else status=`<p class="note">Not set up yet.</p>`;
+  return `<details ${S.ai||S.aiLocked?"open":""} style="margin:6px 0 14px"><summary style="font-weight:600;color:var(--muted);cursor:pointer;padding:6px 0">AI suggestions (optional)</summary>${status}
+   <label class="field" style="margin-top:8px"><span>${I?"Replace the shared key":"Anthropic API key"}</span><input id="s-key" type="password" placeholder="sk-ant-…" autocomplete="off" autocapitalize="off"></label>
+   <p class="note">Paste it once and every phone in your family space can use it. It's locked with your family code before it's saved, so the database only holds scrambled text. Anyone who has the family code can use the key, so set a monthly spend cap in the Anthropic console. The live event and game lookups also need web search switched on there (Settings, then Privacy).</p>
+   ${I?`<button class="danger" data-act="clearKey">Remove the shared key for everyone</button>`:""}</details>`;
+}
 function setupSheet(msg){
-  const ok=API.name&&API.fid,hasKey=!!aiKey();
+  const ok=API.name&&API.fid;
   sheet(`<h3>Welcome to Jetset Johnsons</h3>${msg?`<p class="note" style="color:var(--eat)">${esc(msg)}</p>`:""}
   <label class="field"><span>Family code</span><input id="s-code" type="password" placeholder="${API.fid?"Leave blank to keep the current family":"At least 8 characters. Not case-sensitive."}" autocomplete="off" autocapitalize="off"></label>
   <label class="field"><span>Your name</span><input id="s-name" value="${esc(API.name)}" placeholder="Mom" autocomplete="given-name"></label>
   <p class="note">The code is the only lock on your family's trips, so make it long and hard to guess. Everyone who enters the same code shares the same trips.</p>
-  ${ok?`<details ${hasKey?"open":""} style="margin:6px 0 14px"><summary style="font-weight:600;color:var(--muted);cursor:pointer;padding:6px 0">AI suggestions (optional)</summary>
-   <label class="field" style="margin-top:8px"><span>Anthropic API key</span><input id="s-key" type="password" placeholder="${hasKey?"Saved on this device. Paste a new one to replace it":"sk-ant-…"}" autocomplete="off" autocapitalize="off"></label>
-   <p class="note">Turns on the “Find…” lists and the live event and game lookups. The key stays on this device only and is never saved to your family's data. Lists you make are shared with everyone, so only one person needs a key. The live lookups also need web search switched on in the Anthropic console (Settings, then Privacy).</p>
-   ${hasKey?`<button class="danger" data-act="clearKey">Remove key from this device</button>`:""}</details>`:""}
+  ${ok?aiSection():""}
   <div class="foot"><span></span><button class="btn" data-act="saveSetup">Continue</button></div>`,!ok);
 }
-let PENDING_FID="";
-function createSheet(fid){
-  PENDING_FID=fid;
+let PENDING_FID="",PENDING_CK="";
+function createSheet(fid,ck){
+  PENDING_FID=fid;PENDING_CK=ck||"";
   sheet(`<h3>Start a new family space?</h3>
   <p class="note">Nobody has used that code yet. Create a new space with it? Everyone who enters this same code will share the same trips.</p>
   <p class="note">If you meant to join an existing space, go back and re-check the code.</p>
@@ -878,22 +930,32 @@ document.addEventListener("click",async ev=>{
   if(a==="newPhoto"){S.busy.photo=true;render();try{await nextCityPhoto(c)}catch{toast("Couldn't find another photo. Check your connection.")}finally{S.busy.photo=false;render()}return}
   if(a==="setupOpen")return setupSheet();
   if(a==="saveSetup"){
-    const name=$("#s-name").value.trim(),code=($("#s-code")?.value||"").trim();
+    const name=$("#s-name").value.trim(),code=($("#s-code")?.value||"").trim(),key=($("#s-key")?.value||"").trim();
     if(!name){$("#s-name").focus();return}
     if(!code&&!API.fid){$("#s-code").focus();return}
     if(code&&code.length<8){toast("Use a code that's at least 8 characters.");return}
-    const key=($("#s-key")?.value||"").trim();
     if(key&&!/^sk-/.test(key)){toast("That doesn't look like an Anthropic key. It starts with sk-ant-.");return}
-    if(key)LS.set("jj_akey",key);
     API.name=name;LS.set("jj_name",name);
-    let fid;if(code){try{fid=await familyIdFor(code)}catch{toast("This browser can't hash the code. Use https.");return}}
-    closeSheet();lastCities="";start(fid);return;
+    let fid,ck;
+    if(code){toast("Checking the code…");try{fid=await familyIdFor(code);ck=await familyKeyFor(code,fid)}catch{toast("This browser can't check the code. Open the site over https.");return}}
+    if(key){
+      const useCk=ck||LS.get("jj_ck");
+      if(fid&&fid!==API.fid){toast("Switch to that family first, then add the key.");return}
+      if(!useCk){toast("Enter the family code above too, so the key can be locked with it.");return}
+      try{await saveSharedKey(key,useCk,fid||API.fid)}catch(e){toast(errText(e));return}
+      toast("Shared key saved for the whole family");
+    }
+    closeSheet();lastCities="";start(fid,ck);return;
   }
-  if(a==="clearKey"){LS.set("jj_akey","");S.ai=false;closeSheet();render();toast("Key removed from this device");return}
+  if(a==="clearKey"){
+    if(!confirm("Remove the shared Anthropic key? AI suggestions will turn off for the whole family."))return;
+    try{await commit(FB.deleteDoc(settingsRef()));closeSheet();toast("Shared key removed for everyone")}catch{toast("Couldn't remove it. Try again.")}
+    return;
+  }
   if(a==="cancelCreate"){setupSheet();return}
   if(a==="createFamily"){
     el.disabled=true;el.textContent="Creating…";
-    try{await createFamily(PENDING_FID);closeSheet();enterFamily(PENDING_FID)}
+    try{await createFamily(PENDING_FID);closeSheet();enterFamily(PENDING_FID,PENDING_CK)}
     catch(e){el.disabled=false;el.textContent="Create family space";toast(errText(e))}
     return;
   }
@@ -913,21 +975,22 @@ document.addEventListener("click",async ev=>{
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet()});
 
 /* ---------- Start ---------- */
-function enterFamily(fid){
-  if(fid!==API.fid){S.cities=[];S.pins=[];S.live={};S.cityId=null;lastCities="";lastCity="";CITYDOCS={}}
-  API.fid=fid;LS.set("jj_fid",fid);S.err="";subscribe();
+function enterFamily(fid,ck){
+  if(fid!==API.fid){S.cities=[];S.pins=[];S.live={};S.cityId=null;lastCities="";lastCity="";CITYDOCS={};AIKEY="";S.ai=false;S.aiInfo=null;S.aiLocked=false;if(!ck)LS.set("jj_ck","")}   // a different family: drop the old family's secret
+  API.fid=fid;LS.set("jj_fid",fid);if(ck)LS.set("jj_ck",ck);S.err="";subscribe();
 }
-async function start(newFid){
-  S.ai=!!aiKey();S.places=false;S.geo=true;S.photos=true;S.needsCode=true;
+async function start(newFid,newCk){
+  try{localStorage.removeItem("jj_akey")}catch{}   // an earlier build kept the key per device; it now lives (encrypted) in the family data
+  S.ai=!!AIKEY;S.places=false;S.geo=true;S.photos=true;S.needsCode=true;
   const fid=newFid||API.fid;
   if(!API.name||!fid){S.ready=true;render();setupSheet();return}
   try{
     if(!(await familyExists(fid))){
-      if(newFid){S.ready=true;render();createSheet(fid);return}
+      if(newFid){S.ready=true;render();createSheet(fid,newCk);return}
       API.fid="";LS.set("jj_fid","");S.ready=true;render();setupSheet("That family space wasn't found. Enter your code again.");return;
     }
   }catch(e){S.err=errText(e);S.ready=true;render();return}
-  enterFamily(fid);
+  enterFamily(fid,newCk);
 }
 if("serviceWorker" in navigator)window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{})});
 render();start();

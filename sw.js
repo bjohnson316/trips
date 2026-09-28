@@ -3,7 +3,7 @@
 // instantly and still loads offline. Trip data itself is handled by Firestore's
 // own on-device cache, not by this file.
 
-const CACHE_NAME = 'jetset-shell-v4';
+const CACHE_NAME = 'jetset-shell-v5';
 const SHELL_ASSETS = [
   './',
   './manifest.webmanifest',
