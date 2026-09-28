@@ -3,7 +3,7 @@
 // instantly and still loads offline. Trip data itself is handled by Firestore's
 // own on-device cache, not by this file.
 
-const CACHE_NAME = 'jetset-shell-v5';
+const CACHE_NAME = 'jetset-shell-v7';
 const SHELL_ASSETS = [
   './',
   './manifest.webmanifest',
@@ -12,6 +12,8 @@ const SHELL_ASSETS = [
   './icon-maskable-512.png',
   './apple-touch-icon.png',
   './firebase-bundle.js',
+  './leaflet.js',
+  './leaflet.css',
 ];
 
 self.addEventListener('install', (event) => {

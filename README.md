@@ -59,6 +59,22 @@ offline sync when you're back online).
   than one lookup a second). If nothing matches, the pin simply isn't
   placed, and Directions still works. "Place N more on the map" retries.
 
+### The Map tab
+A real, zoomable map. **Satellite** (default) shows aerial imagery with street and
+place names on top; **Streets** switches to OpenStreetMap. Your choice is
+remembered per phone. With pins, the map fits them all; **with no pins it shows
+the trip's city** (its outline is looked up once and saved for everyone), and
+"Whole city" always takes you back. Tap a pin for its card and Directions. The
+map keeps your zoom and position while you use the rest of the app.
+
+- Satellite imagery and labels come from Esri's free public tile service, which
+  needs no key but which Esri lists as a legacy service that could change without
+  notice. **If satellite tiles ever stop loading, the map switches to Streets on
+  its own and says so.** Streets (OpenStreetMap) is the dependable one.
+- Both are credited on the map. Please keep that credit visible.
+- The mapping library is Leaflet 1.9.4 (BSD-2 licence, `leaflet-LICENSE.txt`),
+  bundled in the repo so nothing loads from a CDN.
+
 ### Optional: Claude lists (one shared key)
 Turns on "Find restaurants / entertainment / things to do / yearly events" and
 the live event and game lookups. **You add the key once and every phone in your
@@ -99,8 +115,9 @@ Directions and Menu buttons open Google Maps and Google search instead.
 
 ## Privacy
 
-Looking up a photo or map position sends the trip's city name or the pin's
-name to Wikipedia or OpenStreetMap from your phone. Claude lists send the
+Looking up a photo, city or map position sends the trip's city name or the pin's
+name to Wikipedia or OpenStreetMap from your phone, and viewing the map loads tiles
+from OpenStreetMap or Esri (so they see your IP address and the area you're viewing). Claude lists send the
 prompt, using the shared key, to Anthropic. Nothing is sent to any of them until you add a trip, add
 a pin, or press a "Find…" button. Map positions are © OpenStreetMap
 contributors and photos are credited to their authors on Wikimedia Commons.
@@ -110,7 +127,7 @@ contributors and photos are credited to their authors on Wikimedia Commons.
 - `firebase-bundle.js` is the Firebase SDK in one file. To rebuild it:
   `cd tools/firebase-bundle && npm install && npm run build`, then copy the
   new `firebase-bundle.js` to the repo root.
-- After editing any file, bump `CACHE_NAME` in `sw.js` (`jetset-shell-v5` →
-  `v6`) so phones pick up the new version instead of the cached one.
+- After editing any file, bump `CACHE_NAME` in `sw.js` (`jetset-shell-v7` →
+  `v8`) so phones pick up the new version instead of the cached one.
 - Firebase's free plan (50,000 reads and 20,000 writes a day, 1 GB) is far more
   than a family trip planner uses.

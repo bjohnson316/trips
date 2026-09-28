@@ -14,6 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="leaflet.css">
 <style>
 :root{
   --bg:#F3F4F8;--surface:#FFFFFF;--surface2:#F7F8FB;--ink:#12131A;--muted:#636779;--line:#E3E5EC;--accent:#4F46E5;--accent-ink:#FFFFFF;
@@ -153,6 +154,17 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke
 .foot{display:flex;gap:10px;justify-content:space-between;align-items:center;margin-top:6px}
 .danger{background:none;border:0;color:var(--eat);font-weight:700;padding:12px 0}
 .toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;font-weight:600;z-index:30;white-space:nowrap}
+
+/* Map (Leaflet) */
+.mapbox{isolation:isolate}   /* keep Leaflet's high z-index panes and controls underneath the bottom nav, sheets and toasts */
+.mapbox .leaflet-container{font-family:inherit;background:var(--surface2)}
+#mapslot,#jjmap{height:clamp(320px,58vh,520px)}
+.jm-wrap{background:none!important;border:0!important}
+.jm{position:relative;width:28px;height:36px}
+.jm svg{display:block;width:28px;height:36px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5));transform-origin:50% 100%;transition:transform .15s}
+.jm.sel svg{transform:scale(1.28)}
+.jm .jl{position:absolute;left:29px;top:5px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:700;color:#fff;text-shadow:0 0 2px #000,0 0 3px #000,0 1px 5px #000;pointer-events:none}
+.leaflet-control-attribution{font-size:10px!important}
 </style>
 </head>
 <body>
@@ -160,6 +172,7 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke
 <div id="navslot"></div>
 <div id="modal"></div>
 <script src="firebase-bundle.js"></script>
+<script src="leaflet.js"></script>
 <script>
 /* ---------- Static reference: major-league teams by metro ---------- */
 const METROS=[
@@ -503,7 +516,7 @@ function openCity(id){
   render();loadCity().catch(()=>toast("Couldn't load this trip."));
 }
 function closeCity(){S.cityId=null;render();window.scrollTo(0,0)}
-function resolveNames(){}
+function resolveNames(){mountMap()}
 
 /* ---------- Render ---------- */
 function render(){
@@ -672,37 +685,22 @@ function mapHTML(c){
   const f=S.mapFilter,pins=S.pins.filter(p=>f==="all"||p.cat===f);
   let pts=pins.filter(hasGeo);
   if(pts.length>2){const med=a=>[...a].sort((x,y)=>x-y)[Math.floor(a.length/2)];const la=med(pts.map(p=>p.lat)),ln=med(pts.map(p=>p.lng));pts=pts.filter(p=>km(p.lat,p.lng,la,ln)<80)}
+  MAPPTS=pts;
   const offMap=pins.filter(p=>!pts.includes(p)),untried=S.pins.filter(p=>!hasGeo(p)&&!p.geoTried&&["eat","play","see"].includes(p.cat));
   const cats=["all","eat","play","see","events","games"].filter(k=>k==="all"||S.pins.some(p=>p.cat===k));
   const seg=`<div class="seg">${cats.map(k=>`<button style="--c:${k==="all"?"var(--ink)":catColor(k)}" aria-pressed="${f===k}" data-act="mapFilter" data-k="${k}">${k==="all"?"Everything":TABS.find(t=>t.k===k).label}</button>`).join("")}</div>`;
   const route=pts.slice(0,10);
   const routeUrl="https://www.google.com/maps/dir/"+route.map(p=>encodeURIComponent(p.title+", "+c.name)).join("/");
-  let svg="";
-  const W=360,H=400,pad=40;
-  if(pts.length){
-    const midLat=pts.reduce((s,p)=>s+p.lat,0)/pts.length,k=Math.cos(midLat*Math.PI/180);
-    const xs=pts.map(p=>p.lng*k),ys=pts.map(p=>p.lat);
-    let x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
-    const minSpan=.012;if(x1-x0<minSpan){const m=(x0+x1)/2;x0=m-minSpan/2;x1=m+minSpan/2}if(y1-y0<minSpan){const m=(y0+y1)/2;y0=m-minSpan/2;y1=m+minSpan/2}
-    const sc=Math.min((W-2*pad)/(x1-x0),(H-2*pad-20)/(y1-y0));
-    const ox=(W-(x1-x0)*sc)/2,oy=(H-20-(y1-y0)*sc)/2+10;
-    const P=p=>[ox+(p.lng*k-x0)*sc,oy+(y1-p.lat)*sc];
-    let grid="";for(let x=20;x<W;x+=40)grid+=`<line class="grid" x1="${x}" y1="0" x2="${x}" y2="${H}"/>`;for(let y=20;y<H;y+=40)grid+=`<line class="grid" x1="0" y1="${y}" x2="${W}" y2="${y}"/>`;
-    const miPerUnit=69/sc,nice=[.1,.25,.5,1,2,5,10,20],mi=nice.find(n=>n/miPerUnit>=50)||20,bar=mi/miPerUnit;
-    const showLbl=pts.length<=12;
-    const order=[...pts].sort((a,b)=>(a.id===S.mapSel)-(b.id===S.mapSel));
-    const marks=order.map(p=>{const [x,y]=P(p),sel=p.id===S.mapSel,s=sel?1.35:1,col=catColor(p.cat);
-      return `<g class="pinmark" data-act="mapSel" data-id="${p.id}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><circle r="16" fill="transparent"/>
-      <g transform="scale(${s})"><ellipse cy="1" rx="5" ry="2" fill="#000" opacity=".15"/><path d="M0 0C-2-6-9-9-9-15a9 9 0 0 1 18 0c0 6-7 9-9 15z" fill="${col}" stroke="var(--surface)" stroke-width="2"/><circle cy="-15" r="3.5" fill="#fff"/></g>
-      ${showLbl||sel?`<text class="lbl" x="${x>W-110?-12:12}" y="-12" text-anchor="${x>W-110?"end":"start"}">${esc(p.title.length>22?p.title.slice(0,21)+"…":p.title)}</text>`:""}</g>`}).join("");
-    svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Map of pinned places">${grid}
-      <g transform="translate(${W-30} 34)"><circle r="14" fill="var(--surface)" stroke="var(--line)"/><path d="M0-9 4 3 0 0-4 3z" fill="var(--ink)"/><text y="-17" text-anchor="middle" class="scale">N</text></g>
-      ${marks}
-      <g transform="translate(18 ${H-18})"><line x1="0" y1="0" x2="${bar.toFixed(1)}" y2="0" stroke="var(--muted)" stroke-width="2"/><line x1="0" y1="-4" x2="0" y2="4" stroke="var(--muted)" stroke-width="2"/><line x1="${bar.toFixed(1)}" y1="-4" x2="${bar.toFixed(1)}" y2="4" stroke="var(--muted)" stroke-width="2"/><text class="scale" x="${(bar/2).toFixed(1)}" y="-7" text-anchor="middle">${mi} mi</text></g></svg>`;
-  }
-  const sel=S.pins.find(p=>p.id===S.mapSel);
-  return `<section class="sec"><div class="sec-head"><div><h2>Everything we pinned</h2><p class="sub">Tap a pin for directions.${S.places?"":" Positions are approximate."}</p></div></div>${seg}
-   <div class="mapbox">${svg||`<div class="empty" style="padding:40px 20px;text-align:center"><strong>No pins on the map yet</strong>Pin restaurants and sights and they'll show up here.</div>`}</div>
+  const sel=S.pins.find(p=>p.id===S.mapSel),sat=MAP.style==="sat";
+  return `<section class="sec"><div class="sec-head"><div><h2>Everything we pinned</h2><p class="sub">${pts.length?"Tap a pin for directions.":"No pins yet, so here's "+esc(c.name)+"."}</p></div></div>${seg}
+   <div class="mapbox"><div id="mapslot"></div></div>
+   <div class="acts" style="margin-top:10px">
+    <button class="chip ${sat?"on":""}" style="--c:var(--map)" data-act="mapStyle" data-k="sat" aria-pressed="${sat}">Satellite</button>
+    <button class="chip ${sat?"":"on"}" style="--c:var(--map)" data-act="mapStyle" data-k="streets" aria-pressed="${!sat}">Streets</button>
+    <button class="chip" data-act="mapCity">${ico("map")}Whole city</button>
+   </div>
+   ${pts.length?"":`<p class="note" style="margin-top:8px">Pin restaurants and sights and they'll show up on the map.</p>`}
+   ${pts.some(p=>p.geoSrc!=="osm")?`<p class="note" style="margin-top:8px">Pins saved from a suggestion use approximate positions. Ones you add by name are looked up on OpenStreetMap.</p>`:""}
    ${S.pins.some(p=>p.geoSrc==="osm")?`<p class="note" style="margin-top:8px">Some positions © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>.</p>`:""}
    ${sel?`<ul class="cards sel-card">${pinCard(sel,c)}</ul>`:""}
    <div class="acts" style="margin-top:12px">
@@ -711,6 +709,91 @@ function mapHTML(c){
    </div>
    ${offMap.length?`<p class="note" style="margin-top:10px">Not on the map: ${offMap.map(p=>esc(p.title)).join(", ")}. Use Directions on the pin instead.</p>`:""}
   </section>`;
+}
+
+/* ---------- Map (Leaflet + free tiles) ----------
+   Satellite = Esri World Imagery with street and place names drawn on top. Streets = OpenStreetMap.
+   Leaflet lives in one element that we re-attach after every render, so it keeps its zoom and position. */
+const TILES={
+  osm:{url:"https://tile.openstreetmap.org/{z}/{x}/{y}.png",o:{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'}},
+  img:{url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",o:{maxZoom:19,maxNativeZoom:18,attribution:"Imagery, roads and place names © Esri, Maxar, Earthstar Geographics and the GIS User Community"}},
+  place:{url:"https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",o:{maxZoom:19,maxNativeZoom:17,zIndex:2}},
+  road:{url:"https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}",o:{maxZoom:19,maxNativeZoom:17,zIndex:3}}
+};
+const MAP={el:null,map:null,layers:[],markers:[],style:LS.get("jj_mapstyle")==="streets"?"streets":"sat",fitKey:""};
+let MAPPTS=[];
+function setMapStyle(k,persist=true){
+  MAP.style=k;if(persist)LS.set("jj_mapstyle",k);
+  if(!MAP.map)return;
+  MAP.layers.forEach(l=>MAP.map.removeLayer(l));MAP.layers=[];
+  const add=t=>{const l=L.tileLayer(t.url,t.o);l.addTo(MAP.map);MAP.layers.push(l);return l};
+  if(k==="streets"){add(TILES.osm);return}
+  const base=add(TILES.img);let ok=0,bad=0;
+  base.on("tileload",()=>{ok++});
+  base.on("tileerror",()=>{   // Esri's free tiles are a legacy service. If they stop loading, fall back to streets by ourselves.
+    bad++;
+    if(!ok&&bad>=4&&MAP.style==="sat"){setMapStyle("streets",false);toast("Satellite imagery isn't available right now. Showing streets.");render()}
+  });
+  add(TILES.place);add(TILES.road);
+}
+function syncMarkers(pts){
+  MAP.markers.forEach(m=>MAP.map.removeLayer(m));MAP.markers=[];
+  const showLbl=pts.length<=12;
+  for(const p of pts){
+    const sel=p.id===S.mapSel,col=catColor(p.cat),t=String(p.title||"");
+    const html=`<div class="jm ${sel?"sel":""}"><svg viewBox="0 0 28 36" aria-hidden="true"><path style="fill:${col}" d="M14 35C11 27 2 23 2 13a12 12 0 0 1 24 0c0 10-9 14-12 22z" stroke="#fff" stroke-width="2"/><circle cx="14" cy="13" r="4.5" fill="#fff"/></svg>${showLbl||sel?`<span class="jl">${esc(t.length>22?t.slice(0,21)+"…":t)}</span>`:""}</div>`;
+    const m=L.marker([p.lat,p.lng],{icon:L.divIcon({className:"jm-wrap",html,iconSize:[28,36],iconAnchor:[14,35]}),title:t,riseOnHover:true,zIndexOffset:sel?1000:0});
+    m.on("click",()=>{S.mapSel=S.mapSel===p.id?null:p.id;render()});
+    m.addTo(MAP.map);MAP.markers.push(m);
+  }
+}
+function cityView(c){
+  const m=MAP.map;if(!m)return;
+  if(c.area&&isFinite(c.area.s))m.fitBounds([[c.area.s,c.area.w],[c.area.n,c.area.e]],{padding:[8,8],animate:false});
+  else if(c.geo&&typeof c.geo.lat==="number")m.setView([c.geo.lat,c.geo.lng],12,{animate:false});
+}
+function fitMap(c,pts){   // only move the view when what it should show has changed, never on ordinary re-renders
+  const key=[c.id,S.mapFilter,pts.map(p=>p.id+":"+p.lat+":"+p.lng).join(","),c.area?"a":"",c.geo?"g":""].join("|");
+  if(key===MAP.fitKey)return;MAP.fitKey=key;
+  const m=MAP.map;
+  if(pts.length===1)m.setView([pts[0].lat,pts[0].lng],16,{animate:false});
+  else if(pts.length)m.fitBounds(L.latLngBounds(pts.map(p=>[p.lat,p.lng])),{padding:[48,48],maxZoom:17,animate:false});
+  else cityView(c);   // no pins: show the trip's city
+}
+function mountMap(){
+  const slot=$("#mapslot");if(!slot)return;
+  const c=city();if(!c)return;
+  if(typeof L==="undefined"){slot.innerHTML=`<div class="empty" style="padding:40px 20px;text-align:center"><strong>The map couldn't load</strong>Reload the page and try again.</div>`;return}
+  if(!MAP.map){
+    MAP.el=document.createElement("div");MAP.el.id="jjmap";slot.appendChild(MAP.el);
+    MAP.map=L.map(MAP.el,{zoomControl:true,worldCopyJump:true});
+    L.control.scale({imperial:true,metric:false}).addTo(MAP.map);
+    MAP.map.setView([39.5,-98.35],4);
+    setMapStyle(MAP.style);
+  }else slot.appendChild(MAP.el);
+  MAP.map.invalidateSize();
+  syncMarkers(MAPPTS);fitMap(c,MAPPTS);ensureCityArea(c);
+}
+const AREA_BUSY=new Set();
+async function osmArea(c){   // the city's outline box from OpenStreetMap
+  const base="https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q="+encodeURIComponent(wikiQuery(c.name));
+  let rows=await nomJSON(base+"&featuretype=city");if(!rows||!rows.length)rows=await nomJSON(base);
+  const r=rows&&rows[0];if(!r)return null;
+  const geo=isFinite(+r.lat)&&isFinite(+r.lon)?{lat:+(+r.lat).toFixed(5),lng:+(+r.lon).toFixed(5)}:null;
+  let area=null;
+  if(Array.isArray(r.boundingbox)){const [s,n,w,e]=r.boundingbox.map(Number);
+    if([s,n,w,e].every(isFinite)&&n-s<2&&e-w<2.5)area={s:+s.toFixed(4),n:+n.toFixed(4),w:+w.toFixed(4),e:+e.toFixed(4)}}   // ignore absurdly large results
+  return {area,geo};
+}
+async function ensureCityArea(c){
+  if(!S.geo||c.area||c.areaTried||AREA_BUSY.has(c.id))return;
+  AREA_BUSY.add(c.id);
+  try{
+    const r=await osmArea(c),up={areaTried:true};
+    if(r){if(r.area)up.area=r.area;if(r.geo&&!c.geo)up.geo=r.geo}
+    await store.updateCity(c.id,up);
+  }catch{/* offline or blocked: try again next time */}
+  finally{AREA_BUSY.delete(c.id)}
 }
 async function locate(list){
   const c=city();if(!c||!S.ai||!list.length)return;
@@ -728,13 +811,15 @@ async function locate(list){
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const GEO_GAP=window.GEO_GAP_MS||1100;   // OpenStreetMap's Nominatim policy: at most one request per second
 const getJSON=async u=>{const r=await fetch(u);if(!r.ok)throw new Error("HTTP "+r.status);return r.json()};
+let nomNext=0;
+async function nomJSON(u){const now=Date.now(),at=Math.max(now,nomNext);nomNext=at+GEO_GAP;if(at>now)await sleep(at-now);return getJSON(u)}
 async function osmFind(title,c){
   const ck="jj_osm:"+c.id+":"+String(title).toLowerCase(),hit=LS.get(ck);
   if(hit)return hit==="none"?null:JSON.parse(hit);
   const g0=c.geo&&typeof c.geo.lat==="number"?c.geo:null,d=.4;   // stay within ~25 miles of the city so we never pin the wrong Springfield
   const u="https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q="+encodeURIComponent(title+", "+c.name)
     +(g0?`&viewbox=${(g0.lng-d).toFixed(4)},${(g0.lat+d).toFixed(4)},${(g0.lng+d).toFixed(4)},${(g0.lat-d).toFixed(4)}&bounded=1`:"");
-  const rows=await getJSON(u),r=rows&&rows[0];
+  const rows=await nomJSON(u),r=rows&&rows[0];
   const out=r&&isFinite(+r.lat)&&isFinite(+r.lon)?{lat:+(+r.lat).toFixed(5),lng:+(+r.lon).toFixed(5)}:null;
   LS.set(ck,out?JSON.stringify(out):"none");
   return out;
@@ -747,7 +832,7 @@ async function doPlace(list){
     const cid=p.cid||S.cityId,c=S.cities.find(x=>x.id===cid);if(!c)continue;
     if(!["eat","play","see"].includes(p.cat)){try{await store.updatePin(cid,p.id,{geoTried:true})}catch{}continue}   // events/games aren't places
     let r=null,down=false;
-    if(S.geo){try{r=await osmFind(p.title,c)}catch{down=true}await sleep(GEO_GAP)}
+    if(S.geo){try{r=await osmFind(p.title,c)}catch{down=true}}
     try{
       if(r)await store.updatePin(cid,p.id,{lat:r.lat,lng:r.lng,geoTried:true,geoSrc:"osm"});
       else if(!down&&S.ai)aiLeft.push({id:p.id,title:p.title});
@@ -902,6 +987,8 @@ document.addEventListener("click",async ev=>{
   if(a==="tab"){S.tab=el.dataset.k;render();window.scrollTo({top:0});return}
   if(a==="eatStyle"){S.eatStyle=el.dataset.k;render();return}
   if(a==="mapFilter"){S.mapFilter=el.dataset.k;S.mapSel=null;render();return}
+  if(a==="mapStyle"){setMapStyle(el.dataset.k);render();return}
+  if(a==="mapCity"){if(c)cityView(c);return}
   if(a==="mapSel"){S.mapSel=S.mapSel===el.dataset.id?null:el.dataset.id;render();return}
   if(a==="locate"){S.busy.locate=true;render();await placePins(S.pins.filter(p=>!hasGeo(p)&&!p.geoTried).slice(0,25).map(p=>({id:p.id,title:p.title,cat:p.cat,cid:S.cityId})));S.busy.locate=false;render();return}
   if(a==="saveCity"){
@@ -909,7 +996,7 @@ document.addEventListener("click",async ev=>{
     if(!name){$("#f-name").focus();return}
     if(start&&end&&end<start){toast("Leave date is before arrive date.");return}
     try{
-      if(c&&S.cityId)await store.updateCity(c.id,{name,start,end,...(name!==c.name?{photo:null,photoTried:false,geo:null}:{})});   // a new name means a new photo and position
+      if(c&&S.cityId)await store.updateCity(c.id,{name,start,end,...(name!==c.name?{photo:null,photoTried:false,geo:null,area:null,areaTried:false}:{})});   // a new name means a new photo and position
       else{const id=newId();await store.setCity(id,{name,start,end,by:API.name,at:Date.now()});closeSheet();openCity(id);return}
       closeSheet();
     }catch{toast("Couldn't save. You may need edit access.")}
