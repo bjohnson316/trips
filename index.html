@@ -132,10 +132,10 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke
 
 /* Bottom nav */
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:8;padding:0 10px env(safe-area-inset-bottom,0px);background:var(--glass);backdrop-filter:blur(18px) saturate(1.6);-webkit-backdrop-filter:blur(18px) saturate(1.6);border-top:1px solid var(--line)}
-.nav-in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr)}
-.nav button{border:0;background:none;padding:9px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font-size:11px;font-weight:600}
+.nav-in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.nav button{border:0;background:none;padding:9px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font-size:10px;min-width:0;font-weight:600}
 .nav button svg.i{width:22px;height:22px}
-.nav button .ib{padding:4px 12px;border-radius:999px;display:grid;place-items:center}
+.nav button .ib{padding:4px 9px;border-radius:999px;display:grid;place-items:center}
 .nav button[aria-selected="true"]{color:var(--c)}
 .nav button[aria-selected="true"] .ib{background:color-mix(in srgb,var(--c) 16%,transparent)}
 
@@ -165,6 +165,7 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke
 .jm.sel svg{transform:scale(1.28)}
 .jm .jl{position:absolute;left:29px;top:5px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:700;color:#fff;text-shadow:0 0 2px #000,0 0 3px #000,0 1px 5px #000;pointer-events:none}
 .leaflet-control-attribution{font-size:10px!important}
+.leaflet-attribution-flag{display:none!important}
 </style>
 </head>
 <body>
@@ -237,6 +238,7 @@ const IC={
  events:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18M9.5 15l1.7 1.5 3.3-3"/>',
  games:'<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6c3.5 3.5 3.5 9.3 0 12.8M18.4 5.6c-3.5 3.5-3.5 9.3 0 12.8M3 12h18"/>',
  map:'<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+ dash:'<rect x="3" y="3" width="7" height="9" rx="1.8"/><rect x="14" y="3" width="7" height="5" rx="1.8"/><rect x="14" y="12" width="7" height="9" rx="1.8"/><rect x="3" y="16" width="7" height="5" rx="1.8"/>',
  dir:'<path d="M3 11 21 3l-8 18-2-8z"/>',
  link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
  plus:'<path d="M12 5v14M5 12h14"/>',
@@ -252,6 +254,7 @@ const ico=(k,cls="i")=>`<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="tru
 const LOGO=`<svg class="logo" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#06B6D4"/><stop offset=".55" stop-color="#6366F1"/><stop offset="1" stop-color="#D946EF"/></linearGradient></defs><rect width="48" height="48" rx="14" fill="url(#lg)"/><path d="M7 36c7-1 15-5 18-8" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="2.2" stroke-dasharray="0.1 4.2" stroke-linecap="round"/><path d="M24 12h9v15a8.5 8.5 0 0 1-15.9 4.2" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 const TABS=[
+ {k:"dash",label:"Dashboard",c:"var(--accent)"},
  {k:"eat",label:"Eat",c:"var(--eat)"},
  {k:"play",label:"Play",c:"var(--play)"},
  {k:"see",label:"Explore",c:"var(--see)"},
@@ -302,10 +305,20 @@ function wrapCard(it,cat,inner){
   return t?`<li class="card ph-card" style="--c:${catColor(cat)}">${t}<div class="ph-body">${inner}</div></li>`
           :`<li class="card" style="--c:${catColor(cat)}"><div class="ico">${ico(cat)}</div><div>${inner}</div></li>`;
 }
+// A link to the listing's own information page: its website when we know it, otherwise a search for it.
+function infoUrl(it,cat,c){
+  const name=it.name||it.title||it.matchup||"";
+  if(cat==="events")return g(name+" "+c.name+" "+String(it.date||c.start||today()).slice(0,4)+" event");
+  if(cat==="games")return g(name+" "+c.name+" tickets");
+  return g(name+" "+c.name);
+}
 function extraLinks(it,cat,c){
-  if(cat==="eat")return `<a class="chip" href="${esc(menuLink(it,c))}" target="_blank" rel="noopener">${ico("menu")}Menu</a>`;
-  if(it.website)return `<a class="chip" href="${esc(it.website)}" target="_blank" rel="noopener">${ico("link")}Website</a>`;
-  return "";
+  let h="";
+  if(cat==="eat")h+=`<a class="chip" href="${esc(menuLink(it,c))}" target="_blank" rel="noopener">${ico("menu")}Menu</a>`;
+  if(it.website)h+=`<a class="chip" href="${esc(it.website)}" target="_blank" rel="noopener">${ico("link")}Website</a>`;
+  if(it.wiki)h+=`<a class="chip" href="${esc(it.wiki)}" target="_blank" rel="noopener">${ico("link")}Wikipedia</a>`;
+  if(!it.website&&!it.wiki&&cat!=="eat"&&!it.url)h+=`<a class="chip" href="${esc(infoUrl(it,cat,c))}" target="_blank" rel="noopener">${ico("link")}Info</a>`;   // last resort: a search. (Pins with their own link already show it as "Link".)
+  return h;
 }
 const hasGeo=p=>typeof p.lat==="number"&&typeof p.lng==="number";
 const city=()=>S.cities.find(c=>c.id===S.cityId);
@@ -512,11 +525,11 @@ const store={
   async setLive(cid,kind,data){await commit(FB.updateDoc(cityRef(cid),{["live."+kind]:clean(data)}))}
 };
 function openCity(id){
-  S.cityId=id;S.pins=[];S.live={};lastCity="";S.tab="eat";S.mapSel=null;S.mapFilter="all";window.scrollTo(0,0);
+  S.cityId=id;S.pins=[];S.live={};lastCity="";S.tab="dash";S.mapSel=null;S.mapFilter="all";window.scrollTo(0,0);
   render();loadCity().catch(()=>toast("Couldn't load this trip."));
 }
 function closeCity(){S.cityId=null;render();window.scrollTo(0,0)}
-function resolveNames(){mountMap()}
+function resolveNames(){mountMap();infoKick()}
 
 /* ---------- Render ---------- */
 function render(){
@@ -601,8 +614,20 @@ function discover(kind,cat,c,title,sub,btn,extra=""){
   ${L?.items?.length?`<ul class="cards">${L.items.map((it,i)=>suggestCard(it,i,kind,cat,c)).join("")}</ul>`:""}
   <div style="margin-top:12px">${aiBtn(kind,btn)}</div></section>`;
 }
+const GROUPS=[{k:"eat",t:"Restaurants"},{k:"play",t:"Entertainment"},{k:"see",t:"Sights"},{k:"events",t:"Events"},{k:"games",t:"Games"}];
+function dashHTML(c){   // every pin for this trip in one list, grouped by kind
+  const f=S.dashFilter||"all",n=S.pins.length,lv=S.pins.filter(p=>p.status==="loved").length;
+  if(!n)return `<section class="sec"><div class="sec-head"><div><h2>Everything we pinned</h2><p class="sub">Restaurants, spots, sights, events and games in one list.</p></div></div>
+   <div class="empty"><strong>Nothing pinned yet</strong>Use the tabs below to pin places for ${esc(c.name)}. They'll all show up here.</div></section>`;
+  const shown=S.pins.filter(p=>f==="all"||(f==="loved"?p.status==="loved":p.status!=="loved"));
+  const seg=`<div class="seg" style="--c:var(--ink)">${[["all","Everything",n],["want","Want to go",n-lv],["loved","Loved it",lv]].map(([k,l,num])=>`<button aria-pressed="${f===k}" data-act="dashFilter" data-k="${k}">${l} ${num}</button>`).join("")}</div>`;
+  const groups=GROUPS.map(gr=>({...gr,ps:shown.filter(p=>p.cat===gr.k).sort((a,b)=>(b.at||0)-(a.at||0))})).filter(gr=>gr.ps.length);
+  return `<section class="sec"><div class="sec-head"><div><h2>Everything we pinned</h2><p class="sub">${n} ${n===1?"pin":"pins"} for ${esc(c.name)}${lv?", "+lv+" loved":""}. Use the tabs below to add more.</p></div></div>${seg}</section>
+  ${groups.length?groups.map(gr=>`<section class="sec" style="--c:${catColor(gr.k)}"><div class="sec-head"><div><h2>${gr.t}</h2><p class="sub">${gr.ps.length} pinned</p></div></div><ul class="cards">${gr.ps.map(p=>pinCard(p,c)).join("")}</ul></section>`).join(""):`<p class="note">Nothing in this view yet.</p>`}`;
+}
 function tabHTML(c){
   switch(S.tab){
+  case "dash":return dashHTML(c);
   case "eat":{
     const st=EAT_STYLES.find(s=>s.k===S.eatStyle)||EAT_STYLES[0];
     const seg=`<div class="seg" style="--c:var(--eat)">${EAT_STYLES.map(s=>`<button aria-pressed="${s.k===st.k}" data-act="eatStyle" data-k="${s.k}">${s.l}</button>`).join("")}</div>`;
@@ -655,7 +680,7 @@ function eventsHTML(c){
   </div>${liveBtn("events",c,"Load confirmed events for our dates")}</section>
   ${V?`<section class="sec"><div class="sec-head"><div><h2>Confirmed for your dates</h2><p class="sub">Checked ${when(V.at)}${V.note?". "+esc(V.note):""}</p></div></div>
    ${ver.length?`<ul class="cards">${ver.map(e=>{const pinned=S.pins.some(p=>p.cat==="events"&&p.title===e.name);return `<li class="card" style="--c:var(--events)"><div class="ico">${ico("events")}</div><div><div class="when">${esc(fmt(e.date,{weekday:"short",month:"short",day:"numeric"}))}${e.time?", "+esc(e.time):""}</div><div class="t">${esc(e.name)}</div>${e.venue?`<div class="d">${esc(e.venue)}</div>`:""}
-    <div class="acts">${pinned?`<span class="chip on">${ico("pin")}Pinned</span>`:`<button class="chip go" data-act="pinFrom" data-src="events" data-id="${esc(e.name+e.date)}">${ico("pin")}Pin</button>`}${e.venue?`<a class="chip" href="${esc(dirs(e.venue,c.name))}" target="_blank" rel="noopener">${ico("dir")}Directions</a>`:""}${e.url?`<a class="chip" href="${esc(e.url)}" target="_blank" rel="noopener">${ico("ticket")}Details</a>`:""}</div></div></li>`}).join("")}</ul>`:`<p class="note">None of the checked events fall inside your current dates.</p>`}</section>`:""}
+    <div class="acts">${pinned?`<span class="chip on">${ico("pin")}Pinned</span>`:`<button class="chip go" data-act="pinFrom" data-src="events" data-id="${esc(e.name+e.date)}">${ico("pin")}Pin</button>`}${e.venue?`<a class="chip" href="${esc(dirs(e.venue,c.name))}" target="_blank" rel="noopener">${ico("dir")}Directions</a>`:""}${e.url?`<a class="chip" href="${esc(e.url)}" target="_blank" rel="noopener">${ico("ticket")}Details</a>`:`<a class="chip" href="${esc(g(e.name+" "+(e.venue||c.name)+" "+e.date))}" target="_blank" rel="noopener">${ico("link")}Info</a>`}</div></div></li>`}).join("")}</ul>`:`<p class="note">None of the checked events fall inside your current dates.</p>`}</section>`:""}
   <section class="sec"><div class="sec-head"><div><h2>Yearly traditions around then</h2><p class="sub">${A?"These usually land in this window. Confirm exact dates before you go.":"Festivals and seasonal events that usually happen around your dates."}</p></div></div>
   ${A?.items?.length?`<ul class="cards">${A.items.map((it,i)=>{const pinned=S.pins.some(p=>p.cat==="events"&&p.title===it.name);return `<li class="card" style="--c:var(--events)"><div class="ico">${ico("spark")}</div><div><div class="when">${esc(it.typical_timing)}</div><div class="t">${esc(it.name)}</div><div class="d">${esc(it.why)}</div>
     <div class="acts">${pinned?`<span class="chip on">${ico("pin")}Pinned</span>`:`<button class="chip go" data-act="pinFrom" data-src="annual" data-i="${i}">${ico("pin")}Pin</button>`}<a class="chip" href="${esc(g(it.name+" "+c.name+" "+(c.start||today()).slice(0,4)+" dates"))}" target="_blank" rel="noopener">Check dates</a></div></div></li>`}).join("")}</ul>`:A?`<p class="note">No recurring events usually fall in this window.</p>`:""}
@@ -766,7 +791,8 @@ function mountMap(){
   if(typeof L==="undefined"){slot.innerHTML=`<div class="empty" style="padding:40px 20px;text-align:center"><strong>The map couldn't load</strong>Reload the page and try again.</div>`;return}
   if(!MAP.map){
     MAP.el=document.createElement("div");MAP.el.id="jjmap";slot.appendChild(MAP.el);
-    MAP.map=L.map(MAP.el,{zoomControl:true,worldCopyJump:true});
+    MAP.map=L.map(MAP.el,{zoomControl:true,worldCopyJump:true,attributionControl:false});
+    L.control.attribution({prefix:false}).addTo(MAP.map);   // just the map data credits (OpenStreetMap / Esri), without Leaflet's own link and flag
     L.control.scale({imperial:true,metric:false}).addTo(MAP.map);
     MAP.map.setView([39.5,-98.35],4);
     setMapStyle(MAP.style);
@@ -813,14 +839,20 @@ const GEO_GAP=window.GEO_GAP_MS||1100;   // OpenStreetMap's Nominatim policy: at
 const getJSON=async u=>{const r=await fetch(u);if(!r.ok)throw new Error("HTTP "+r.status);return r.json()};
 let nomNext=0;
 async function nomJSON(u){const now=Date.now(),at=Math.max(now,nomNext);nomNext=at+GEO_GAP;if(at>now)await sleep(at-now);return getJSON(u)}
+function siteOf(r){   // a venue's website from its OpenStreetMap tags, only if it's a real http(s) address
+  const t=r&&r.extratags||{};let w=String(t.website||t["contact:website"]||t.url||"").trim();
+  if(!w)return "";
+  if(!/^https?:\/\//i.test(w))w="https://"+w;
+  try{const u=new URL(w);return /^https?:$/.test(u.protocol)&&u.hostname.includes(".")&&w.length<300?u.href:""}catch{return ""}
+}
 async function osmFind(title,c){
-  const ck="jj_osm:"+c.id+":"+String(title).toLowerCase(),hit=LS.get(ck);
+  const ck="jj_osm2:"+c.id+":"+String(title).toLowerCase(),hit=LS.get(ck);
   if(hit)return hit==="none"?null:JSON.parse(hit);
   const g0=c.geo&&typeof c.geo.lat==="number"?c.geo:null,d=.4;   // stay within ~25 miles of the city so we never pin the wrong Springfield
-  const u="https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q="+encodeURIComponent(title+", "+c.name)
+  const u="https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&extratags=1&q="+encodeURIComponent(title+", "+c.name)
     +(g0?`&viewbox=${(g0.lng-d).toFixed(4)},${(g0.lat+d).toFixed(4)},${(g0.lng+d).toFixed(4)},${(g0.lat-d).toFixed(4)}&bounded=1`:"");
   const rows=await nomJSON(u),r=rows&&rows[0];
-  const out=r&&isFinite(+r.lat)&&isFinite(+r.lon)?{lat:+(+r.lat).toFixed(5),lng:+(+r.lon).toFixed(5)}:null;
+  const site=r?siteOf(r):"",out=r&&isFinite(+r.lat)&&isFinite(+r.lon)?{lat:+(+r.lat).toFixed(5),lng:+(+r.lon).toFixed(5),...(site?{website:site}:{})}:null;
   LS.set(ck,out?JSON.stringify(out):"none");
   return out;
 }
@@ -834,7 +866,7 @@ async function doPlace(list){
     let r=null,down=false;
     if(S.geo){try{r=await osmFind(p.title,c)}catch{down=true}}
     try{
-      if(r)await store.updatePin(cid,p.id,{lat:r.lat,lng:r.lng,geoTried:true,geoSrc:"osm"});
+      if(r)await store.updatePin(cid,p.id,{lat:r.lat,lng:r.lng,geoTried:true,geoSrc:"osm",...(r.website?{website:r.website}:{})});
       else if(!down&&S.ai)aiLeft.push({id:p.id,title:p.title});
       else if(!down)await store.updatePin(cid,p.id,{geoTried:true});   // if the lookup itself failed, leave it to try again later
     }catch{}
@@ -899,6 +931,69 @@ async function nextCityPhoto(c){
   if(r.list.length<2){toast("No other photos found.");return}
   const i=((c.photo&&typeof c.photo.i==="number"?c.photo.i:-1)+1)%r.list.length;
   await store.updateCity(c.id,{photo:{...r.list[i],i}});
+}
+
+
+/* ---------- Real information pages for listings (free) ----------
+   For each restaurant, place and sight we look for its OFFICIAL website (OpenStreetMap) and a matching Wikipedia article.
+   Each listing is looked up once, in the background, and the result is saved for the whole family. If neither
+   is found we keep the "Info" search link. Wikipedia matches must have the same name AND be located near the trip city. */
+const INFO_ON=window.INFO_ENRICH!==false;
+const STOPW=new Set(["the","a","an","of","and","at","in","on","de","la"]);
+const toks=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/&/g," and ").replace(/[^a-z0-9 ]+/g," ").split(/\s+/).filter(w=>w&&!STOPW.has(w));
+function sameName(name,title,c){   // "Museum of Fine Arts" ~ "Museum of Fine Arts, Boston" yes; "Quincy Market" ~ "Quincy Market Realty" no
+  const A=toks(name),B=toks(title),sb=new Set(B),sa=new Set(A),place=new Set(toks(wikiQuery(c.name)));
+  if(!A.length||!B.length)return false;
+  const extra=B.filter(w=>!sa.has(w)),missing=A.filter(w=>!sb.has(w));
+  return extra.every(w=>place.has(w))&&missing.length<=(A.length>=3?1:0);
+}
+async function wikiArticle(name,c){
+  const city=wikiQuery(c.name).split(",")[0];
+  const j=await getJSON(WAPI+"generator=search&gsrnamespace=0&gsrlimit=4&gsrsearch="+encodeURIComponent(name+" "+city)+"&prop=coordinates|info&inprop=url&coprimary=primary&colimit=4");
+  const pages=Object.values(j&&j.query&&j.query.pages||{}).sort((a,b)=>(a.index||99)-(b.index||99));
+  for(const p of pages){
+    const co=p.coordinates&&p.coordinates[0];
+    if(!co||!c.geo||km(co.lat,co.lon,c.geo.lat,c.geo.lng)>60)continue;   // must be a real place near the trip city
+    if(sameName(name,p.title,c))return p.fullurl||"https://en.wikipedia.org/wiki/"+encodeURIComponent(String(p.title).replace(/ /g,"_"));
+  }
+  return "";
+}
+async function findInfo(name,c){   // throws if a service is unreachable, so we retry later instead of recording "nothing found"
+  const r=await osmFind(name,c),wiki=await wikiArticle(name,c);
+  return {website:r&&r.website||"",wiki};
+}
+let infoChain=Promise.resolve();const INFO_BUSY=new Set();
+function runInfo(key,fn){   // a run that ends because its list was replaced asks for a follow-up; a run that ends because we're offline does not (no retry loop)
+  INFO_BUSY.add(key);
+  infoChain=infoChain.then(fn).catch(()=>{}).then(r=>{INFO_BUSY.delete(key);if(r==="again")infoKick()});
+}
+async function enrichList(c,kind){
+  const L=S.live[kind];if(!L||!Array.isArray(L.items))return;
+  const items=L.items.map(it=>({...it}));let dirty=0,saved=0;
+  const save=async()=>{const cur=S.live[kind];if(!cur||cur.at!==L.at)return false;await store.setLive(c.id,kind,{...cur,items});saved=dirty;return true};
+  for(const it of items){
+    if(!S.live[kind]||S.live[kind].at!==L.at)return "again";   // the list was replaced: stop wasting lookups on the old one
+    if(!it||!it.name||it.webTried)continue;
+    let r;try{r=await findInfo(it.name,c)}catch{break}   // offline: stop here, try again next visit
+    it.webTried=true;if(r.website)it.website=r.website;if(r.wiki)it.wiki=r.wiki;dirty++;
+    if(dirty%4===0&&!await save())return "again";   // the list was replaced while we worked: don't overwrite it
+  }
+  if(dirty>saved&&!await save())return "again";
+}
+async function enrichPins(c){
+  const todo=S.pins.filter(p=>["eat","play","see"].includes(p.cat)&&!p.website&&!p.wiki&&!p.webTried).slice(0,12);
+  for(const p of todo){
+    let r;try{r=await findInfo(p.title,c)}catch{break}
+    try{await store.updatePin(c.id,p.id,{webTried:true,...(r.website?{website:r.website}:{}),...(r.wiki?{wiki:r.wiki}:{})})}catch{}
+  }
+}
+function infoKick(){
+  if(!INFO_ON||!S.geo||!S.cityId)return;
+  const c=city();if(!c||!c.geo)return;
+  const tab=S.tab;
+  if(["dash","eat","play","see"].includes(tab)&&!INFO_BUSY.has("pins:"+c.id)&&S.pins.some(p=>["eat","play","see"].includes(p.cat)&&!p.website&&!p.wiki&&!p.webTried))runInfo("pins:"+c.id,()=>enrichPins(c));
+  const k=tab==="see"?"see":tab==="play"?"play":tab==="eat"?"eat_"+S.eatStyle:null,L=k&&S.live[k];
+  if(L&&Array.isArray(L.items)&&!INFO_BUSY.has(c.id+k)&&L.items.some(it=>it&&it.name&&!it.webTried))runInfo(c.id+k,()=>enrichList(c,k));
 }
 
 /* ---------- Sheets ---------- */
@@ -985,6 +1080,7 @@ document.addEventListener("click",async ev=>{
   if(a==="addCity")return citySheet(null);
   if(a==="editCity")return citySheet(c);
   if(a==="tab"){S.tab=el.dataset.k;render();window.scrollTo({top:0});return}
+  if(a==="dashFilter"){S.dashFilter=el.dataset.k;render();return}
   if(a==="eatStyle"){S.eatStyle=el.dataset.k;render();return}
   if(a==="mapFilter"){S.mapFilter=el.dataset.k;S.mapSel=null;render();return}
   if(a==="mapStyle"){setMapStyle(el.dataset.k);render();return}
@@ -1054,7 +1150,7 @@ document.addEventListener("click",async ev=>{
     else if(src==="events"){const it=S.live.events.items.find(e=>e.name+e.date===el.dataset.id);data={cat:"events",title:it.name,when:day(it),note:it.venue||"",url:it.url||""}}
     else if(src==="games"){const it=S.live.games.items.find(e=>e.matchup+e.date===el.dataset.id);data={cat:"games",title:it.matchup,when:day(it),note:[it.league,it.venue].filter(Boolean).join(", "),url:it.url||""}}
     else{const it=S.live[src].items[+el.dataset.i],cat=src.startsWith("eat")?"eat":src;data={cat,title:it.name,note:[it.kind,it.why].filter(Boolean).join(". ")};
-      for(const f of ["placeId","website","rating","mapsUrl","photoCredit","hasPhoto","menuUrl","menuTried","enriched"])if(it[f]!==undefined&&it[f]!==null&&it[f]!=="")data[f]=it[f];if(it.lat!==null&&it.lng!==null&&typeof it.lat==="number"){data.lat=it.lat;data.lng=it.lng;data.geoTried=true}}
+      for(const f of ["placeId","website","wiki","webTried","rating","mapsUrl","photoCredit","hasPhoto","menuUrl","menuTried","enriched"])if(it[f]!==undefined&&it[f]!==null&&it[f]!=="")data[f]=it[f];if(it.lat!==null&&it.lng!==null&&typeof it.lat==="number"){data.lat=it.lat;data.lng=it.lng;data.geoTried=true}}
     if(S.pins.some(p=>p.cat===data.cat&&p.title===data.title)){toast("Already pinned");return}
     try{await addPin(c,data);toast("Pinned")}catch{toast("Couldn't save. You may need edit access.")}
   }

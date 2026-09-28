@@ -44,8 +44,9 @@ family's data. The code itself is never sent to Firebase or stored in the repo.
 
 ## What works
 
-Everything that doesn't need a paid or private key: trips, pins on Eat / Play /
-Explore / Events / Sports, the loved-it toggle, the map, team lists with season
+Everything that doesn't need a paid or private key: trips, a **Dashboard** that
+lists every pin, pins on Eat / Play / Explore / Events / Sports, the loved-it
+toggle, the map, team lists with season
 badges, dark mode, live updates between phones, and offline use (changes made
 offline sync when you're back online).
 
@@ -59,8 +60,28 @@ offline sync when you're back online).
   than one lookup a second). If nothing matches, the pin simply isn't
   placed, and Directions still works. "Place N more on the map" retries.
 
+### The Dashboard tab
+The first tab, and where a trip opens. It lists **every pin for the trip in one
+place**, grouped as Restaurants, Entertainment, Sights, Events and Games (newest
+first), with the same buttons as everywhere else: Directions, the heart, Remove and
+the links below. The buttons at the top filter by **Want to go** or **Loved it**
+and show the counts. It updates live when anyone in the family pins something.
+
+### Links on every listing
+Each restaurant, place and sight links to its own information page where one can be found:
+- **Website**: the official site, when OpenStreetMap knows it.
+- **Wikipedia**: a matching article, but only if it has the same name **and** is located
+  near the trip city, so a same-named place in another country is never linked.
+- **Menu** (restaurants), **Link** (a pin that came with its own page, like a live event
+  lookup), and **Info** (a Google search for the listing) whenever nothing better is known.
+
+These are found automatically, in the background, the first time you open the Eat, Play,
+Explore or Dashboard tab (a list of ten or twelve takes around fifteen seconds, at one
+request a second), then **saved for the whole family**, so each listing is only looked up once.
+Pins made from a suggestion keep its links. Events and games use the page that came with them.
+
 ### The Map tab
-A real, zoomable map. **Satellite** (default) shows aerial imagery with street and
+A real, zoomable map (no Leaflet logo or flag; only the required map credits). **Satellite** (default) shows aerial imagery with street and
 place names on top; **Streets** switches to OpenStreetMap. Your choice is
 remembered per phone. With pins, the map fits them all; **with no pins it shows
 the trip's city** (its outline is looked up once and saved for everyone), and
@@ -110,12 +131,12 @@ browser's developer tools. So:
 Lists are AI-generated, so check details before booking; the live lookups link to their sources.
 
 ### Still off (needs a private server-side key)
-Real photos, ratings and menu links for individual restaurants. Each pin's
-Directions and Menu buttons open Google Maps and Google search instead.
+Real photos, ratings and exact menu links for individual restaurants. Directions,
+Menu and Info open Google Maps and Google search instead.
 
 ## Privacy
 
-Looking up a photo, city or map position sends the trip's city name or the pin's
+Looking up a photo, city, website or map position sends the trip's city name or the pin's
 name to Wikipedia or OpenStreetMap from your phone, and viewing the map loads tiles
 from OpenStreetMap or Esri (so they see your IP address and the area you're viewing). Claude lists send the
 prompt, using the shared key, to Anthropic. Nothing is sent to any of them until you add a trip, add
@@ -127,7 +148,7 @@ contributors and photos are credited to their authors on Wikimedia Commons.
 - `firebase-bundle.js` is the Firebase SDK in one file. To rebuild it:
   `cd tools/firebase-bundle && npm install && npm run build`, then copy the
   new `firebase-bundle.js` to the repo root.
-- After editing any file, bump `CACHE_NAME` in `sw.js` (`jetset-shell-v7` →
-  `v8`) so phones pick up the new version instead of the cached one.
+- After editing any file, bump `CACHE_NAME` in `sw.js` (`jetset-shell-v9` →
+  `v10`) so phones pick up the new version instead of the cached one.
 - Firebase's free plan (50,000 reads and 20,000 writes a day, 1 GB) is far more
   than a family trip planner uses.
